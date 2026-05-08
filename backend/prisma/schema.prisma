@@ -1,6 +1,7 @@
 generator client {
   provider             = "prisma-client-py"
   recursive_type_depth = 5
+  output               = "../venv/Lib/site-packages/prisma"
 }
 
 datasource db {
@@ -16,14 +17,42 @@ enum Role {
   STUDENT
 }
 
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  SUSPENDED
+}
+
 model User {
   id            String       @id @default(uuid())
   email         String       @unique
   password      String
   name          String
   role          Role         @default(STUDENT)
+  status        UserStatus   @default(ACTIVE)
+  
+  // Basic Info
+  studentId     String?      @unique
+  phone         String?
+  gender        String?
+  dob           DateTime?
+  profileImage  String?
+  
+  // Academic Info
   institutionId String?
   institution   Institution? @relation(fields: [institutionId], references: [id])
+  department    String?
+  course        String?
+  semester      String?
+  batch         String?
+  
+  // Proctoring & Security
+  faceRegistered   Boolean   @default(false)
+  webcamEnabled    Boolean   @default(false)
+  micEnabled       Boolean   @default(false)
+  browserLock      Boolean   @default(true)
+  suspiciousCount  Int       @default(0)
+  
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   exams         Exam[]       @relation("ExamProctor")

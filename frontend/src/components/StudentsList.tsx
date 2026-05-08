@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, Filter, MoreVertical, User, Building2, Mail, Calendar, ArrowRight } from 'lucide-react';
+import { Search, Filter, MoreVertical, User, Building2, Mail, Calendar, ArrowRight, ShieldAlert } from 'lucide-react';
+import AddStudentModal from './AddStudentModal';
 
 interface Student {
   id: string;
   name: string;
   email: string;
+  status: string;
+  suspiciousCount: number;
   institution: {
     name: string;
   };
@@ -16,19 +19,21 @@ const StudentsList: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/super-admin/students');
+      setStudents(response.data);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const response = await api.get('/super-admin/students');
-        setStudents(response.data);
-      } catch (error) {
-        console.error('Error fetching students:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStudents();
   }, []);
 
@@ -46,7 +51,7 @@ const StudentsList: React.FC = () => {
           <p className="module-subtitle">Manage and monitor students across all institutions</p>
         </div>
         <div className="header-actions">
-          <button className="primary-btn">
+          <button className="primary-btn" onClick={() => setIsAddModalOpen(true)}>
             <User size={18} />
             <span>Add New Student</span>
           </button>
@@ -115,7 +120,13 @@ const StudentsList: React.FC = () => {
                     </div>
                   </td>
                   <td>
-                    <span className="badge-success">Active</span>
+                    {student.suspiciousCount > 0 ? (
+                      <span className="badge-danger">Suspicious ({student.suspiciousCount})</span>
+                    ) : (
+                      <span className={`badge-${student.status === 'ACTIVE' ? 'success' : 'warning'}`}>
+                        {student.status?.toLowerCase() || 'active'}
+                      </span>
+                    )}
                   </td>
                   <td>
                     <div className="action-cell">
@@ -133,6 +144,12 @@ const StudentsList: React.FC = () => {
           </table>
         )}
       </div>
+
+      <AddStudentModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+        onSuccess={fetchStudents} 
+      />
 
       <style dangerouslySetInnerHTML={{ __html: `
         .module-container {
@@ -310,6 +327,26 @@ const StudentsList: React.FC = () => {
         .badge-success {
           background: #ecfdf5;
           color: #059669;
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: capitalize;
+        }
+
+        .badge-warning {
+          background: #fffbeb;
+          color: #d97706;
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: capitalize;
+        }
+
+        .badge-danger {
+          background: #fef2f2;
+          color: #dc2626;
           padding: 4px 10px;
           border-radius: 20px;
           font-size: 12px;

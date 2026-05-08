@@ -23,6 +23,9 @@ import api from '../api';
 import './SuperAdminDashboard.css';
 import logo from '../assets/logo-icon.svg';
 import StudentsList from './StudentsList';
+import { useAuthStore } from '../store/useAuthStore';
+import { useNavigate } from 'react-router-dom';
+import { useRef } from 'react';
 
 interface DashboardData {
   total_students: number;
@@ -45,6 +48,27 @@ const SuperAdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<'dashboard' | 'students'>('dashboard');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -67,13 +91,6 @@ const SuperAdminDashboard: React.FC = () => {
     fetchStats();
   }, []);
 
-  if (loading && currentView === 'dashboard') {
-    return (
-      <div className="dashboard-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <div className="loading-spinner">Loading Dashboard...</div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -181,14 +198,35 @@ const SuperAdminDashboard: React.FC = () => {
               <div className="notification-dot"></div>
             </div>
             
-            <div className="profile-section">
+            <div 
+              className="profile-section" 
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              ref={profileRef}
+            >
               <div className="profile-info">
-                <span className="profile-name">Alex Rodriguez</span>
-                <span className="profile-role">Master Administrator</span>
+                <span className="profile-name">{user?.name || 'Alex Rodriguez'}</span>
+                <span className="profile-role">{user?.role === 'SUPER_ADMIN' ? 'Master Administrator' : 'Administrator'}</span>
               </div>
               <div className="avatar">
                 <User size={20} />
               </div>
+
+              {showProfileMenu && (
+                <div className="profile-dropdown" onClick={(e) => e.stopPropagation()}>
+                  <div className="dropdown-item">
+                    <User size={16} />
+                    <span>My Profile</span>
+                  </div>
+                  <div className="dropdown-item">
+                    <Settings size={16} />
+                    <span>Account Settings</span>
+                  </div>
+                  <div className="dropdown-item logout" onClick={handleLogout}>
+                    <LogOut size={16} />
+                    <span>Logout</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -198,7 +236,13 @@ const SuperAdminDashboard: React.FC = () => {
             <>
           <div className="page-title-section">
             <h1 className="page-title">Global Overview Dashboard</h1>
-            <p className="page-subtitle">Real-time monitoring across {data?.institutions} institutions and {data?.active_exams} active sessions.</p>
+            <p className="page-subtitle">
+              {loading ? (
+                <span className="skeleton-text" style={{ width: '300px' }}></span>
+              ) : (
+                `Real-time monitoring across ${data?.institutions} institutions and ${data?.active_exams} active sessions.`
+              )}
+            </p>
           </div>
 
           {/* Stats Grid */}
@@ -210,6 +254,7 @@ const SuperAdminDashboard: React.FC = () => {
                 change="+12% from last month" 
                 icon={<Users color="#9810FA" />} 
                 iconBg="#F5EBFF" 
+                loading={loading}
               />
             </div>
             <StatCard 
@@ -218,6 +263,7 @@ const SuperAdminDashboard: React.FC = () => {
               change="Live across all zones" 
               icon={<FileText color="#1447E6" />} 
               iconBg="#EBF0FF" 
+              loading={loading}
             />
             <StatCard 
               title="AI Suspicious Alerts" 
@@ -225,6 +271,7 @@ const SuperAdminDashboard: React.FC = () => {
               change="+42 high risk flagged" 
               icon={<AlertTriangle color="#FB2C36" />} 
               iconBg="#FFF0F1" 
+              loading={loading}
             />
             <StatCard 
               title="Proctoring Precision" 
@@ -232,6 +279,7 @@ const SuperAdminDashboard: React.FC = () => {
               change="Model v4.2 Deployment" 
               icon={<TrendingUp color="#00A63E" />} 
               iconBg="#EBF9F0" 
+              loading={loading}
             />
             <StatCard 
               title="Avg. Incident Response" 
@@ -239,6 +287,7 @@ const SuperAdminDashboard: React.FC = () => {
               change="-15s from yesterday" 
               icon={<Clock color="#D08700" />} 
               iconBg="#FFF8EB" 
+              loading={loading}
             />
             <StatCard 
               title="Institution Partners" 
@@ -246,6 +295,7 @@ const SuperAdminDashboard: React.FC = () => {
               change="2 pending verification" 
               icon={<Globe color="#111111" />} 
               iconBg="#F5F6FA" 
+              loading={loading}
             />
           </div>
 
@@ -290,16 +340,28 @@ const SuperAdminDashboard: React.FC = () => {
                 <p className="card-subtitle">Global security & system logs</p>
               </div>
               <div className="activity-list">
-                {data?.recent_activity.map((activity) => (
-                  <ActivityItem 
-                    key={activity.id}
-                    title={activity.title} 
-                    desc={activity.desc} 
-                    time={activity.time} 
-                    icon={activity.type === 'ALERT' ? <AlertTriangle size={16} color="#FB2C36" /> : <Shield size={16} color="#00A63E" />} 
-                    iconBg={activity.type === 'ALERT' ? "#FFF0F1" : "#EBF9F0"} 
-                  />
-                ))}
+                {loading ? (
+                  [1, 2, 3].map(i => (
+                    <div key={i} className="activity-item loading">
+                      <div className="activity-icon skeleton"></div>
+                      <div className="activity-content">
+                        <div className="skeleton-text" style={{ width: '120px', height: '14px' }}></div>
+                        <div className="skeleton-text" style={{ width: '180px', height: '12px' }}></div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  data?.recent_activity.map((activity) => (
+                    <ActivityItem 
+                      key={activity.id}
+                      title={activity.title} 
+                      desc={activity.desc} 
+                      time={activity.time} 
+                      icon={activity.type === 'ALERT' ? <AlertTriangle size={16} color="#FB2C36" /> : <Shield size={16} color="#00A63E" />} 
+                      iconBg={activity.type === 'ALERT' ? "#FFF0F1" : "#EBF9F0"} 
+                    />
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -370,11 +432,15 @@ const SuperAdminDashboard: React.FC = () => {
 
 /* Sub-components */
 
-const StatCard = ({ title, value, change, icon, iconBg }: any) => (
+const StatCard = ({ title, value, change, icon, iconBg, loading }: any) => (
   <div className="stat-card">
     <div className="stat-info">
       <h3>{title}</h3>
-      <div className="stat-value">{value}</div>
+      {loading ? (
+        <div className="skeleton-text" style={{ width: '80px', height: '28px', margin: '8px 0' }}></div>
+      ) : (
+        <div className="stat-value">{value}</div>
+      )}
       <div className="stat-change">{change}</div>
     </div>
     <div className="stat-icon" style={{ background: iconBg }}>

@@ -1,5 +1,6 @@
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta, date
+from typing import Optional, List
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -74,6 +75,21 @@ async def shutdown():
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class StudentCreate(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    studentId: str
+    phone: Optional[str] = None
+    gender: Optional[str] = None
+    dob: Optional[date] = None
+    institutionId: str
+    department: Optional[str] = None
+    course: Optional[str] = None
+    semester: Optional[str] = None
+    batch: Optional[str] = None
+    browserLock: Optional[bool] = True
 
 class Token(BaseModel):
     access_token: str
@@ -176,6 +192,15 @@ async def super_admin_stats(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
             "recent_activity": []
         }
 
+@app.get("/api/super-admin/institutions")
+async def get_all_institutions(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        institutions = await prisma.institution.find_many()
+        return institutions
+    except Exception as e:
+        print(f"Error fetching institutions: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch institutions")
+
 @app.get("/api/super-admin/students")
 async def get_all_students(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
     try:
@@ -188,6 +213,53 @@ async def get_all_students(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
     except Exception as e:
         print(f"Error fetching students: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch students")
+
+@app.post("/api/super-admin/students")
+async def create_student(student: StudentCreate, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        # Check if student already exists
+        existing_user = await prisma.user.find_first(
+            where={
+                "OR": [
+                    {"email": student.email},
+                    {"studentId": student.studentId}
+                ]
+            }
+        )
+        if existing_user:
+            detail = "Email already registered" if existing_user.email == student.email else "Student ID already exists"
+            raise HTTPException(status_code=400, detail=detail)
+
+        # Hash password
+        hashed_password = get_password_hash(student.password)
+
+        # Create user
+        dob_dt = datetime.combine(student.dob, datetime.min.time()) if student.dob else None
+        new_student = await prisma.user.create(
+            data={
+                "name": student.name,
+                "email": student.email,
+                "password": hashed_password,
+                "role": "STUDENT",
+                "studentId": student.studentId,
+                "phone": student.phone,
+                "gender": student.gender,
+                "dob": dob_dt,
+                "institutionId": student.institutionId,
+                "department": student.department,
+                "course": student.course,
+                "semester": student.semester,
+                "batch": student.batch,
+                "browserLock": student.browserLock
+            },
+            include={"institution": True}
+        )
+        return new_student
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error creating student: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/admin/dashboard")
 async def admin_dashboard(admin=Depends(RoleChecker(["SUPER_ADMIN", "COLLEGE_ADMIN"]))):
