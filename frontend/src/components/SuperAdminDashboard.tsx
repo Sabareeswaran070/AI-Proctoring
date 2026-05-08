@@ -17,7 +17,14 @@ import {
   Eye,
   Activity,
   Globe,
-  MoreVertical
+  MoreVertical,
+  Mail,
+  Building,
+  Edit2,
+  ShieldCheck,
+  Monitor,
+  Key,
+  Lock
 } from 'lucide-react';
 import api from '../api';
 import './SuperAdminDashboard.css';
@@ -47,7 +54,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'students'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'students' | 'profile'>('dashboard');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   
@@ -213,7 +220,7 @@ const SuperAdminDashboard: React.FC = () => {
 
               {showProfileMenu && (
                 <div className="profile-dropdown" onClick={(e) => e.stopPropagation()}>
-                  <div className="dropdown-item">
+                  <div className="dropdown-item" onClick={() => { setCurrentView('profile'); setShowProfileMenu(false); }}>
                     <User size={16} />
                     <span>My Profile</span>
                   </div>
@@ -421,14 +428,229 @@ const SuperAdminDashboard: React.FC = () => {
             </div>
           </div>
           </>
-          ) : (
+          ) : currentView === 'students' ? (
             <StudentsList />
+          ) : (
+            <ProfileSection user={user} />
           )}
         </div>
       </main>
     </div>
   );
 };
+
+/* Sub-components */
+
+const ProfileSection = ({ user }: any) => (
+  <div className="profile-container">
+    <div className="breadcrumb">
+      Dashboard <ChevronRight size={14} /> <span>My Profile</span>
+    </div>
+
+    <div className="profile-header-main">
+      <div className="profile-title-group">
+        <h1 className="page-title">My Profile</h1>
+        <p className="page-subtitle">Manage your administrator account and security settings.</p>
+      </div>
+      <div className="header-actions-inline">
+        <div className="notif-dot-wrapper">
+          <Bell size={24} color="#111" />
+          <div className="notif-dot"></div>
+        </div>
+        <div className="avatar-circle small">
+          <img src="https://ui-avatars.com/api/?name=Super+Admin&background=111&color=fff" alt="Avatar" />
+        </div>
+      </div>
+    </div>
+
+    {/* Top Summary Card */}
+    <div className="profile-card summary-card">
+      <div className="summary-left">
+        <div className="avatar-sa">{user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'SA'}</div>
+        <div className="summary-info">
+          <h2>{user?.name || 'Super Admin'}</h2>
+          <span className="badge-master">Master Administrator</span>
+          <div className="info-meta">
+            <div className="meta-item"><Mail size={16} /> {user?.email || 'admin@aiproctoring.edu'}</div>
+            <div className="meta-item"><Building size={16} /> AI Proctoring System - Central Administration</div>
+            <div className="meta-item"><Clock size={16} /> Last login: {new Date().toLocaleDateString()}</div>
+          </div>
+        </div>
+      </div>
+      <div className="summary-right">
+        <button className="edit-profile-btn"><Edit2 size={16} /> Edit Profile</button>
+        <button className="change-pass-btn"><Lock size={16} /> Change Password</button>
+      </div>
+    </div>
+
+    <div className="profile-layout-grid">
+      {/* Left Column: Personal Info */}
+      <div className="profile-column">
+        <div className="profile-card">
+          <h3 className="card-title">Personal Information</h3>
+          <div className="profile-form">
+            <div className="form-group">
+              <label>Full Name</label>
+              <input type="text" defaultValue={user?.name || ''} placeholder="Enter full name" />
+            </div>
+            <div className="form-group">
+              <label>Email Address</label>
+              <input type="email" defaultValue={user?.email || ''} placeholder="Enter email" />
+            </div>
+            <div className="form-group">
+              <label>Phone Number</label>
+              <input type="text" defaultValue="+1 (555) 123-4567" />
+            </div>
+            <div className="form-group">
+              <label>Date of Birth</label>
+              <input type="text" placeholder="Select Date" />
+            </div>
+            <div className="form-group">
+              <label>Gender</label>
+              <input type="text" placeholder="Enter gender" />
+            </div>
+            <div className="form-group">
+              <label>Address</label>
+              <textarea rows={3} placeholder="Enter your address"></textarea>
+            </div>
+            <button className="save-btn-large">Save Changes</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column: Account & Security */}
+      <div className="profile-column">
+        <div className="profile-card status-card">
+          <div className="status-header">
+            <div className="status-icon-box">
+              <ShieldCheck size={24} color="#008236" />
+            </div>
+            <div className="status-text">
+              <h4>Account Status</h4>
+              <p>Full system access enabled</p>
+            </div>
+            <span className="badge-status-green">Verified</span>
+          </div>
+        </div>
+
+        <div className="security-section">
+          <h3 className="card-title">Account & Security</h3>
+          <div className="security-cards-list">
+            <SecurityCard 
+              icon={<Shield size={20} />} 
+              title="Two-Factor Authentication" 
+              subtitle="Add an extra layer of security"
+              status="Active"
+              statusType="green"
+            />
+            <SecurityCard 
+              icon={<Activity size={20} />} 
+              title="Login Activity" 
+              subtitle="Recent sign-in locations"
+              status="Monitored"
+              statusType="blue"
+            />
+            <SecurityCard 
+              icon={<Monitor size={20} />} 
+              title="Active Sessions" 
+              subtitle="2 devices currently logged in"
+              status="2 Active"
+              statusType="purple"
+            />
+            <SecurityCard 
+              icon={<Key size={20} />} 
+              title="Password Strength" 
+              subtitle="Last changed 30 days ago"
+              status="Strong"
+              statusType="green"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Admin Statistics */}
+    <div className="admin-stats-section">
+      <h3 className="section-title">Admin Statistics</h3>
+      <div className="stats-grid-row">
+        <StatMiniCard icon={<Building size={20} color="#1447E6" />} value="24" label="Total Institutions Managed" iconBg="#DBEAFE" />
+        <StatMiniCard icon={<FileText size={20} color="#008236" />} value="156" label="Active Exams" iconBg="#DCFCE7" />
+        <StatMiniCard icon={<AlertTriangle size={20} color="#FB2C36" />} value="1,248" label="Suspicious Alerts Reviewed" iconBg="#FFF0F1" />
+        <StatMiniCard icon={<ShieldCheck size={20} color="#9333EA" />} value="Full" label="System Access Level" iconBg="#F3E8FF" />
+      </div>
+    </div>
+
+    {/* Recent Activity */}
+    <div className="profile-card recent-activity-full">
+      <h3 className="card-title">Recent Activity</h3>
+      <div className="activity-timeline-enhanced">
+        <TimelineItem 
+          icon={<Key size={16} />} 
+          title="Password Changed" 
+          desc="You successfully updated your password" 
+          time="2 hours ago" 
+          color="#00A63E"
+        />
+        <TimelineItem 
+          icon={<Building size={16} />} 
+          title="New Institution Added" 
+          desc='Added "Massachusetts Institute of Technology" to platform' 
+          time="1 day ago" 
+          color="#1447E6"
+        />
+        <TimelineItem 
+          icon={<Monitor size={16} />} 
+          title="Login from New Device" 
+          desc="MacBook Pro - Chrome Browser (Boston, MA)" 
+          time="3 days ago" 
+          color="#F59E0B"
+        />
+        <TimelineItem 
+          icon={<ShieldCheck size={16} />} 
+          title="Security Verification Completed" 
+          desc="Two-factor authentication enabled successfully" 
+          time="5 days ago" 
+          color="#9333EA"
+        />
+      </div>
+    </div>
+  </div>
+);
+
+const SecurityCard = ({ icon, title, subtitle, status, statusType }: any) => (
+  <div className="security-mini-card">
+    <div className="security-mini-icon">{icon}</div>
+    <div className="security-mini-content">
+      <h4>{title}</h4>
+      <p>{subtitle}</p>
+    </div>
+    <span className={`badge-mini ${statusType}`}>{status}</span>
+  </div>
+);
+
+const StatMiniCard = ({ icon, value, label, iconBg }: any) => (
+  <div className="stat-mini-card">
+    <div className="stat-mini-icon" style={{ backgroundColor: iconBg }}>{icon}</div>
+    <div className="stat-mini-values">
+      <div className="stat-mini-value">{value}</div>
+      <div className="stat-mini-label">{label}</div>
+    </div>
+  </div>
+);
+
+const TimelineItem = ({ icon, title, desc, time, color }: any) => (
+  <div className="timeline-enhanced-item">
+    <div className="timeline-enhanced-line"></div>
+    <div className="timeline-enhanced-icon" style={{ backgroundColor: color }}>
+      {icon}
+    </div>
+    <div className="timeline-enhanced-content">
+      <h4>{title}</h4>
+      <p>{desc}</p>
+      <span className="timeline-time">{time}</span>
+    </div>
+  </div>
+);
 
 /* Sub-components */
 
