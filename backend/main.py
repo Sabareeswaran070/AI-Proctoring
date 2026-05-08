@@ -119,6 +119,22 @@ async def read_users_me(current_user=Depends(get_current_user)):
     }
 
 # RBAC Example Routes
+@app.get("/api/super-admin/stats")
+async def super_admin_stats(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    # This would typically query the database
+    return {
+        "total_students": 48294,
+        "active_exams": 156,
+        "suspicious_alerts": 1284,
+        "precision": "99.4%",
+        "avg_response_time": "1.2m",
+        "institutions": 12,
+        "recent_activity": [
+            {"id": 1, "title": "Multiple Face Detected", "desc": "Student ID: #ST-992 | Exam: CS-201", "time": "2 mins ago", "type": "ALERT"},
+            {"id": 2, "title": "Institution Verified", "desc": "Stanford Tech University has been activated.", "time": "15 mins ago", "type": "SUCCESS"}
+        ]
+    }
+
 @app.get("/api/admin/dashboard")
 async def admin_dashboard(admin=Depends(RoleChecker(["SUPER_ADMIN", "COLLEGE_ADMIN"]))):
     return {"message": f"Welcome Admin {admin.name}", "stats": "System healthy"}

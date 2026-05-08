@@ -30,6 +30,18 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+.login-logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.login-logo {
+  height: 80px;
+  width: auto;
+  object-fit: contain;
+}
+
 .login-card h1 {
   font-size: 24px;
   font-weight: 700;

@@ -4,6 +4,7 @@ import api from '../api';
 import { useAuthStore } from '../store/useAuthStore';
 import './Login.css';
 import loginBg from '../assets/login-bg.png';
+import logo from '../assets/logo-dark.svg';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -53,6 +54,9 @@ const Login: React.FC = () => {
   return (
     <div className="login-container" style={{ backgroundImage: `url(${loginBg})` }}>
       <div className="login-card">
+        <div className="login-logo-container">
+          <img src={logo} alt="AI Proctoring Logo" className="login-logo" />
+        </div>
         <h1>AI Proctoring System</h1>
         <p className="subtitle">Secure Examination Portal</p>
         

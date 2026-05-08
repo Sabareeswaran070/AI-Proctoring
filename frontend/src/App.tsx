@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './components/Login';
+import SuperAdminDashboard from './components/SuperAdminDashboard';
 import './App.css';
 
 function App() {
@@ -9,7 +10,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
-          {/* Add other routes as needed */}
+          <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
           <Route path="*" element={<Login />} />
         </Routes>
       </div>

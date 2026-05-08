@@ -43,7 +43,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    # Ensure secret key is read from environment
+    current_secret = os.getenv("JWT_SECRET", SECRET_KEY)
+    encoded_jwt = jwt.encode(to_encode, current_secret, algorithm=ALGORITHM)
     return encoded_jwt
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -52,8 +54,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    # Ensure secret key is read from environment
+    current_secret = os.getenv("JWT_SECRET", SECRET_KEY)
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, current_secret, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         role: str = payload.get("role")
         if email is None:
