@@ -17,11 +17,81 @@ enum Role {
 }
 
 model User {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  password      String
+  name          String
+  role          Role         @default(STUDENT)
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  exams         Exam[]       @relation("ExamProctor")
+  studentExams  StudentExam[]
+}
+
+model Institution {
   id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(STUDENT)
+  name      String   @unique
+  code      String   @unique
+  users     User[]
+  exams     Exam[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Exam {
+  id            String       @id @default(uuid())
+  title         String
+  description   String?
+  startTime     DateTime
+  endTime       DateTime
+  status        ExamStatus   @default(SCHEDULED)
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  proctorId     String
+  proctor       User         @relation("ExamProctor", fields: [proctorId], references: [id])
+  students      StudentExam[]
+  alerts        Alert[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model StudentExam {
+  id        String     @id @default(uuid())
+  studentId String
+  student   User       @relation(fields: [studentId], references: [id])
+  examId    String
+  exam      Exam       @relation(fields: [examId], references: [id])
+  status    ExamStatus @default(SCHEDULED)
+  score     Float?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([studentId, examId])
+}
+
+model Alert {
+  id        String    @id @default(uuid())
+  examId    String
+  exam      Exam      @relation(fields: [examId], references: [id])
+  studentId String
+  title     String
+  desc      String
+  type      AlertType @default(WARNING)
+  severity  Int       @default(1) // 1-10
+  createdAt DateTime  @default(now())
+}
+
+enum ExamStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum AlertType {
+  INFO
+  WARNING
+  CRITICAL
 }

@@ -15,14 +15,21 @@ interface AuthState {
   logout: () => void;
 }
 
+// Only persist the JWT token — NOT user data
+const storedToken = localStorage.getItem('auth-token');
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: null,
-  isAuthenticated: false,
+  token: storedToken,
+  isAuthenticated: !!storedToken,
+
   setAuth: (user, token) => {
+    localStorage.setItem('auth-token', token); // store only the token
     set({ user, token, isAuthenticated: true });
   },
+
   logout: () => {
+    localStorage.removeItem('auth-token');
     set({ user: null, token: null, isAuthenticated: false });
   },
 }));

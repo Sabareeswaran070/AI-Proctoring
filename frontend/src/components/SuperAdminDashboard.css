@@ -2,8 +2,8 @@
   --sidebar-bg: #111111;
   --sidebar-text: #D1D5DC;
   --sidebar-hover: #1f1f1f;
-  --accent-color: #FFDE00; /* Matching the bright yellow */
-  --accent-text: #111111;
+  --accent-color: #FFA500; /* Brand Orange */
+  --accent-text: #ffffff;
   --bg-main: #F5F6FA;
   --card-bg: #ffffff;
   --border-color: #E5E7EB;
@@ -13,8 +13,8 @@
   --success: #00A63E;
   --error: #FB2C36;
   --warning: #D08700;
-  --info: #1447E6;
-  --purple: #9810FA;
+  --info: #FFA500;
+  --purple: #FFD700; /* Brand Gold */
 }
 
 .dashboard-container {
@@ -110,7 +110,7 @@
 .nav-item.active {
   background-color: var(--accent-color);
   color: var(--accent-text);
-  box-shadow: 0 4px 15px rgba(255, 222, 0, 0.15);
+  box-shadow: 0 4px 15px rgba(255, 165, 0, 0.2);
 }
 
 .sidebar-footer {

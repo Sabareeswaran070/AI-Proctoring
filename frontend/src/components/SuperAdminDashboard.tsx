@@ -22,6 +22,7 @@ import {
 import api from '../api';
 import './SuperAdminDashboard.css';
 import logo from '../assets/logo-icon.svg';
+import StudentsList from './StudentsList';
 
 interface DashboardData {
   total_students: number;
@@ -31,7 +32,7 @@ interface DashboardData {
   avg_response_time: string;
   institutions: number;
   recent_activity: Array<{
-    id: number;
+    id: any;
     title: string;
     desc: string;
     time: string;
@@ -43,6 +44,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'students'>('dashboard');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -51,6 +53,11 @@ const SuperAdminDashboard: React.FC = () => {
         setData(response.data);
       } catch (err: any) {
         console.error('Failed to fetch dashboard stats:', err);
+        if (err.response?.status === 401) {
+          // Redirect to login if unauthorized
+          window.location.href = '/';
+          return;
+        }
         setError('Failed to load dashboard data. Please try again later.');
       } finally {
         setLoading(false);
@@ -60,7 +67,7 @@ const SuperAdminDashboard: React.FC = () => {
     fetchStats();
   }, []);
 
-  if (loading) {
+  if (loading && currentView === 'dashboard') {
     return (
       <div className="dashboard-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
         <div className="loading-spinner">Loading Dashboard...</div>
@@ -91,11 +98,17 @@ const SuperAdminDashboard: React.FC = () => {
         </div>
 
         <nav className="sidebar-nav">
-          <div className="nav-item active">
+          <div 
+            className={`nav-item ${currentView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setCurrentView('dashboard')}
+          >
             <LayoutDashboard size={18} />
             <span>Dashboard</span>
           </div>
-          <div className="nav-item">
+          <div 
+            className={`nav-item ${currentView === 'students' ? 'active' : ''}`}
+            onClick={() => setCurrentView('students')}
+          >
             <Users size={18} />
             <span>Students</span>
           </div>
@@ -181,20 +194,24 @@ const SuperAdminDashboard: React.FC = () => {
         </header>
 
         <div className="dashboard-body">
+          {currentView === 'dashboard' ? (
+            <>
           <div className="page-title-section">
             <h1 className="page-title">Global Overview Dashboard</h1>
-            <p className="page-subtitle">Real-time monitoring across 12 institutions and 1,452 active sessions.</p>
+            <p className="page-subtitle">Real-time monitoring across {data?.institutions} institutions and {data?.active_exams} active sessions.</p>
           </div>
 
           {/* Stats Grid */}
           <div className="stats-grid">
-            <StatCard 
-              title="Total Registered Students" 
-              value={data?.total_students.toLocaleString()} 
-              change="+12% from last month" 
-              icon={<Users color="#9810FA" />} 
-              iconBg="#F5EBFF" 
-            />
+            <div onClick={() => setCurrentView('students')} style={{ cursor: 'pointer' }}>
+              <StatCard 
+                title="Total Registered Students" 
+                value={data?.total_students.toLocaleString()} 
+                change="+12% from last month" 
+                icon={<Users color="#9810FA" />} 
+                iconBg="#F5EBFF" 
+              />
+            </div>
             <StatCard 
               title="Active Examinations" 
               value={data?.active_exams.toString()} 
@@ -341,6 +358,10 @@ const SuperAdminDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+          </>
+          ) : (
+            <StudentsList />
+          )}
         </div>
       </main>
     </div>

@@ -81,26 +81,26 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #F3D820;
-  box-shadow: 0 0 0 3px rgba(243, 216, 32, 0.1);
+  border-color: #FFA500;
+  box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.1);
 }
 
 .sign-in-button {
   width: 100%;
   padding: 14px;
-  background: #F3D820;
+  background: #FFA500;
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #000;
+  color: #fff;
   cursor: pointer;
   transition: transform 0.2s, background-color 0.2s;
   margin-top: 10px;
 }
 
 .sign-in-button:hover {
-  background: #e5cc1e;
+  background: #FF8C00;
   transform: translateY(-1px);
 }
 
