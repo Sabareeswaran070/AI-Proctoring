@@ -20,11 +20,13 @@ import {
   MoreVertical,
   Mail,
   Building,
-  Edit2,
+  Key,
+  Lock,
+  X,
   ShieldCheck,
   Monitor,
-  Key,
-  Lock
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import api from '../api';
 import './SuperAdminDashboard.css';
@@ -258,7 +260,7 @@ const SuperAdminDashboard: React.FC = () => {
               <StatCard 
                 title="Total Registered Students" 
                 value={data?.total_students.toLocaleString()} 
-                change="+12% from last month" 
+                change="Updated just now" 
                 icon={<Users color="#9810FA" />} 
                 iconBg="#F5EBFF" 
                 loading={loading}
@@ -275,7 +277,7 @@ const SuperAdminDashboard: React.FC = () => {
             <StatCard 
               title="AI Suspicious Alerts" 
               value={data?.suspicious_alerts.toLocaleString()} 
-              change="+42 high risk flagged" 
+              change="System monitored" 
               icon={<AlertTriangle color="#FB2C36" />} 
               iconBg="#FFF0F1" 
               loading={loading}
@@ -291,7 +293,7 @@ const SuperAdminDashboard: React.FC = () => {
             <StatCard 
               title="Avg. Incident Response" 
               value={data?.avg_response_time} 
-              change="-15s from yesterday" 
+              change="Live tracking" 
               icon={<Clock color="#D08700" />} 
               iconBg="#FFF8EB" 
               loading={loading}
@@ -299,7 +301,7 @@ const SuperAdminDashboard: React.FC = () => {
             <StatCard 
               title="Institution Partners" 
               value={data?.institutions.toString()} 
-              change="2 pending verification" 
+              change="Verified partners" 
               icon={<Globe color="#111111" />} 
               iconBg="#F5F6FA" 
               loading={loading}
@@ -431,7 +433,7 @@ const SuperAdminDashboard: React.FC = () => {
           ) : currentView === 'students' ? (
             <StudentsList />
           ) : (
-            <ProfileSection user={user} />
+            <ProfileSection user={user} data={data} />
           )}
         </div>
       </main>
@@ -441,7 +443,66 @@ const SuperAdminDashboard: React.FC = () => {
 
 /* Sub-components */
 
-const ProfileSection = ({ user }: any) => (
+const countryCodes = [
+  { code: '+1', country: 'USA' },
+  { code: '+44', country: 'UK' },
+  { code: '+91', country: 'India' },
+  { code: '+61', country: 'Australia' },
+  { code: '+81', country: 'Japan' },
+  { code: '+971', country: 'UAE' },
+  { code: '+65', country: 'Singapore' },
+  { code: '+49', country: 'Germany' },
+];
+
+const ProfileSection = ({ user, data }: any) => {
+  const updateUser = useAuthStore(state => state.updateUser);
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    countryCode: '+91',
+    phone: user?.phone?.includes(' ') ? user.phone.split(' ')[1] : user?.phone || '',
+    dob: user?.dob ? user.dob.split('T')[0] : '',
+    gender: user?.gender || '',
+    address: user?.address || ''
+  });
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [isChangePassModalOpen, setIsChangePassModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (user?.phone?.includes(' ')) {
+      const parts = user.phone.split(' ');
+      setFormData(prev => ({ ...prev, countryCode: parts[0], phone: parts[1] }));
+    }
+    if (user?.address) {
+      setFormData(prev => ({ ...prev, address: user.address || '' }));
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveMessage(null);
+    try {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: `${formData.countryCode} ${formData.phone}`,
+        dob: formData.dob || null,
+        gender: formData.gender || null,
+        address: formData.address || null
+      };
+      const response = await api.put('/auth/profile', payload);
+      updateUser(response.data);
+      setSaveMessage({ type: 'success', text: 'Profile updated successfully!' });
+    } catch (err) {
+      console.error('Failed to save profile:', err);
+      setSaveMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
   <div className="profile-container">
     <div className="breadcrumb">
       Dashboard <ChevronRight size={14} /> <span>My Profile</span>
@@ -451,15 +512,6 @@ const ProfileSection = ({ user }: any) => (
       <div className="profile-title-group">
         <h1 className="page-title">My Profile</h1>
         <p className="page-subtitle">Manage your administrator account and security settings.</p>
-      </div>
-      <div className="header-actions-inline">
-        <div className="notif-dot-wrapper">
-          <Bell size={24} color="#111" />
-          <div className="notif-dot"></div>
-        </div>
-        <div className="avatar-circle small">
-          <img src="https://ui-avatars.com/api/?name=Super+Admin&background=111&color=fff" alt="Avatar" />
-        </div>
       </div>
     </div>
 
@@ -478,9 +530,13 @@ const ProfileSection = ({ user }: any) => (
         </div>
       </div>
       <div className="summary-right">
-        <button className="edit-profile-btn"><Edit2 size={16} /> Edit Profile</button>
-        <button className="change-pass-btn"><Lock size={16} /> Change Password</button>
+        <button className="change-pass-btn" onClick={() => setIsChangePassModalOpen(true)}><Lock size={16} /> Change Password</button>
       </div>
+
+      <ChangePasswordModal 
+        isOpen={isChangePassModalOpen} 
+        onClose={() => setIsChangePassModalOpen(false)} 
+      />
     </div>
 
     <div className="profile-layout-grid">
@@ -491,29 +547,94 @@ const ProfileSection = ({ user }: any) => (
           <div className="profile-form">
             <div className="form-group">
               <label>Full Name</label>
-              <input type="text" defaultValue={user?.name || ''} placeholder="Enter full name" />
+              <input 
+                type="text" 
+                value={formData.name} 
+                onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                placeholder="Enter full name" 
+              />
             </div>
             <div className="form-group">
               <label>Email Address</label>
-              <input type="email" defaultValue={user?.email || ''} placeholder="Enter email" />
+              <input 
+                type="email" 
+                value={formData.email} 
+                onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                placeholder="Enter email" 
+              />
             </div>
             <div className="form-group">
               <label>Phone Number</label>
-              <input type="text" defaultValue="+1 (555) 123-4567" />
+              <div className="phone-input-group" style={{ display: 'flex', gap: '8px' }}>
+                <select 
+                  className="country-code-select" 
+                  value={formData.countryCode}
+                  onChange={(e) => setFormData({...formData, countryCode: e.target.value})}
+                >
+                  {countryCodes.map(c => (
+                    <option key={c.code + c.country} value={c.code}>{c.code} ({c.country})</option>
+                  ))}
+                </select>
+                <input 
+                  type="text" 
+                  value={formData.phone} 
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+                  placeholder="Phone number"
+                  style={{ flex: 1 }}
+                />
+              </div>
             </div>
             <div className="form-group">
               <label>Date of Birth</label>
-              <input type="text" placeholder="Select Date" />
+              <input 
+                type="date" 
+                value={formData.dob} 
+                onChange={(e) => setFormData({...formData, dob: e.target.value})} 
+              />
             </div>
             <div className="form-group">
               <label>Gender</label>
-              <input type="text" placeholder="Enter gender" />
+              <select 
+                value={formData.gender} 
+                onChange={(e) => setFormData({...formData, gender: e.target.value})}
+                className="gender-select"
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
             </div>
             <div className="form-group">
               <label>Address</label>
-              <textarea rows={3} placeholder="Enter your address"></textarea>
+              <input 
+                type="text" 
+                value={formData.address} 
+                onChange={(e) => setFormData({...formData, address: e.target.value})} 
+                placeholder="Enter your full address" 
+              />
             </div>
-            <button className="save-btn-large">Save Changes</button>
+            {saveMessage && (
+              <div className={`save-message ${saveMessage.type}`} style={{ 
+                padding: '10px', 
+                borderRadius: '6px', 
+                marginBottom: '15px',
+                fontSize: '14px',
+                backgroundColor: saveMessage.type === 'success' ? '#ECFDF5' : '#FEF2F2',
+                color: saveMessage.type === 'success' ? '#059669' : '#DC2626',
+                border: `1px solid ${saveMessage.type === 'success' ? '#10B981' : '#EF4444'}`
+              }}>
+                {saveMessage.text}
+              </div>
+            )}
+            <button 
+              className="save-btn-large" 
+              onClick={handleSave} 
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
         </div>
       </div>
@@ -573,9 +694,9 @@ const ProfileSection = ({ user }: any) => (
     <div className="admin-stats-section">
       <h3 className="section-title">Admin Statistics</h3>
       <div className="stats-grid-row">
-        <StatMiniCard icon={<Building size={20} color="#1447E6" />} value="24" label="Total Institutions Managed" iconBg="#DBEAFE" />
-        <StatMiniCard icon={<FileText size={20} color="#008236" />} value="156" label="Active Exams" iconBg="#DCFCE7" />
-        <StatMiniCard icon={<AlertTriangle size={20} color="#FB2C36" />} value="1,248" label="Suspicious Alerts Reviewed" iconBg="#FFF0F1" />
+        <StatMiniCard icon={<Building size={20} color="#1447E6" />} value={data?.institutions?.toString() || '0'} label="Total Institutions Managed" iconBg="#DBEAFE" />
+        <StatMiniCard icon={<FileText size={20} color="#008236" />} value={data?.active_exams?.toString() || '0'} label="Active Exams" iconBg="#DCFCE7" />
+        <StatMiniCard icon={<AlertTriangle size={20} color="#FB2C36" />} value={data?.suspicious_alerts?.toLocaleString() || '0'} label="Suspicious Alerts Reviewed" iconBg="#FFF0F1" />
         <StatMiniCard icon={<ShieldCheck size={20} color="#9333EA" />} value="Full" label="System Access Level" iconBg="#F3E8FF" />
       </div>
     </div>
@@ -584,38 +705,25 @@ const ProfileSection = ({ user }: any) => (
     <div className="profile-card recent-activity-full">
       <h3 className="card-title">Recent Activity</h3>
       <div className="activity-timeline-enhanced">
-        <TimelineItem 
-          icon={<Key size={16} />} 
-          title="Password Changed" 
-          desc="You successfully updated your password" 
-          time="2 hours ago" 
-          color="#00A63E"
-        />
-        <TimelineItem 
-          icon={<Building size={16} />} 
-          title="New Institution Added" 
-          desc='Added "Massachusetts Institute of Technology" to platform' 
-          time="1 day ago" 
-          color="#1447E6"
-        />
-        <TimelineItem 
-          icon={<Monitor size={16} />} 
-          title="Login from New Device" 
-          desc="MacBook Pro - Chrome Browser (Boston, MA)" 
-          time="3 days ago" 
-          color="#F59E0B"
-        />
-        <TimelineItem 
-          icon={<ShieldCheck size={16} />} 
-          title="Security Verification Completed" 
-          desc="Two-factor authentication enabled successfully" 
-          time="5 days ago" 
-          color="#9333EA"
-        />
+        {data?.recent_activity && data.recent_activity.length > 0 ? (
+          data.recent_activity.map((activity: any) => (
+            <TimelineItem 
+              key={activity.id}
+              icon={activity.type === 'ALERT' ? <AlertTriangle size={16} /> : <Shield size={16} />} 
+              title={activity.title} 
+              desc={activity.desc} 
+              time={activity.time} 
+              color={activity.type === 'ALERT' ? "#FB2C36" : "#00A63E"}
+            />
+          ))
+        ) : (
+          <p style={{ textAlign: 'center', padding: '20px', color: '#6A7282' }}>No recent activity logs found.</p>
+        )}
       </div>
     </div>
   </div>
 );
+}
 
 const SecurityCard = ({ icon, title, subtitle, status, statusType }: any) => (
   <div className="security-mini-card">
@@ -746,5 +854,132 @@ const TableRow = ({ name, inst, students, level, time, status }: any) => (
     </td>
   </tr>
 );
+
+const ChangePasswordModal = ({ isOpen, onClose }: any) => {
+  const [passData, setPassData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passData.newPassword !== passData.confirmPassword) {
+      setError("New passwords do not match");
+      return;
+    }
+    if (passData.newPassword.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await api.post('/auth/change-password', {
+        oldPassword: passData.oldPassword,
+        newPassword: passData.newPassword
+      });
+      setSuccess(true);
+      setTimeout(() => {
+        onClose();
+        setSuccess(false);
+        setPassData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      }, 2000);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Failed to update password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+        <header className="modal-header">
+          <div>
+            <h2>Change Password</h2>
+            <p>Update your account security credentials</p>
+          </div>
+          <button className="close-btn" onClick={onClose}><X size={20} /></button>
+        </header>
+
+        <form onSubmit={handleSubmit} className="modal-form">
+          {error && (
+            <div className="error-alert">
+              <AlertCircle size={18} />
+              <span>{error}</span>
+            </div>
+          )}
+          
+          {success && (
+            <div className="info-box" style={{ background: '#ecfdf5', color: '#047857', marginBottom: '20px', border: '1px solid #d1fae5' }}>
+              <ShieldCheck size={18} />
+              <span>Password updated successfully! Closing...</span>
+            </div>
+          )}
+          
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label>Current Password *</label>
+            <div style={{ position: 'relative' }}>
+              <input 
+                type="password" 
+                required 
+                value={passData.oldPassword}
+                onChange={e => setPassData({...passData, oldPassword: e.target.value})}
+                placeholder="Enter current password"
+                style={{ paddingLeft: '40px' }}
+              />
+              <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#99A1AF' }} />
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label>New Password *</label>
+            <div style={{ position: 'relative' }}>
+              <input 
+                type="password" 
+                required 
+                value={passData.newPassword}
+                onChange={e => setPassData({...passData, newPassword: e.target.value})}
+                placeholder="Minimum 6 characters"
+                style={{ paddingLeft: '40px' }}
+              />
+              <Key size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#99A1AF' }} />
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '8px' }}>
+            <label>Confirm New Password *</label>
+            <div style={{ position: 'relative' }}>
+              <input 
+                type="password" 
+                required 
+                value={passData.confirmPassword}
+                onChange={e => setPassData({...passData, confirmPassword: e.target.value})}
+                placeholder="Repeat new password"
+                style={{ paddingLeft: '40px' }}
+              />
+              <ShieldCheck size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#99A1AF' }} />
+            </div>
+          </div>
+
+          <footer className="modal-footer">
+            <button type="button" className="cancel-btn" onClick={onClose}>Cancel</button>
+            <button type="submit" className="submit-btn" disabled={loading || success}>
+              {loading ? <Loader2 className="animate-spin" size={18} style={{ marginRight: '8px' }} /> : null}
+              {loading ? 'Updating...' : 'Update Password'}
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 export default SuperAdminDashboard;

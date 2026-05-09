@@ -5,6 +5,10 @@ interface User {
   email: string;
   name: string;
   role: 'SUPER_ADMIN' | 'COLLEGE_ADMIN' | 'DEPT_ADMIN' | 'FACULTY' | 'STUDENT';
+  phone?: string;
+  gender?: string;
+  dob?: string;
+  address?: string;
 }
 
 interface AuthState {
@@ -12,6 +16,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   setAuth: (user: User, token: string) => void;
+  updateUser: (user: User) => void;
   logout: () => void;
 }
 
@@ -26,6 +31,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   setAuth: (user, token) => {
     localStorage.setItem('auth-token', token); // store only the token
     set({ user, token, isAuthenticated: true });
+  },
+
+  updateUser: (user) => {
+    set({ user });
   },
 
   logout: () => {

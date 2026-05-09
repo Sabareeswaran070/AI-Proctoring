@@ -26,7 +26,7 @@ load_dotenv()
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="AI Proctoring Examination System API",
-    description="Secure backend for AI Proctoring System",
+    # description="Secure backend for AI Proctoring System",
     version="1.0.0"
 )
 app.state.limiter = limiter
@@ -37,10 +37,10 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Security Headers Middleware
@@ -96,6 +96,18 @@ class Token(BaseModel):
     token_type: str
     user: dict
 
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    gender: Optional[str] = None
+    dob: Optional[date] = None
+    address: Optional[str] = None
+    
+class PasswordChange(BaseModel):
+    oldPassword: str
+    newPassword: str
+
 # Auth Routes
 @app.post("/api/auth/login", response_model=Token)
 @limiter.limit("5/minute") # Rate limit login attempts
@@ -121,18 +133,82 @@ async def login(request: Request, form_data: UserLogin):
             "id": user.id,
             "email": user.email,
             "name": user.name,
-            "role": user.role
+            "role": user.role,
+            "phone": user.phone,
+            "gender": user.gender,
+            "dob": user.dob.isoformat() if user.dob else None,
+            "address": user.address
         }
     }
 
 @app.get("/api/auth/me")
 async def read_users_me(current_user=Depends(get_current_user)):
-    return {
-        "id": current_user.id,
-        "email": current_user.email,
-        "name": current_user.name,
-        "role": current_user.role
-    }
+    try:
+        return {
+            "id": current_user.id,
+            "email": current_user.email,
+            "name": current_user.name,
+            "role": current_user.role,
+            "phone": current_user.phone,
+            "gender": current_user.gender,
+            "dob": current_user.dob.isoformat() if current_user.dob else None,
+            "address": getattr(current_user, 'address', None)
+        }
+    except Exception as e:
+        print(f"Error in read_users_me: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/auth/profile")
+async def update_profile(profile_data: ProfileUpdate, current_user=Depends(get_current_user)):
+    update_dict = {k: v for k, v in profile_data.dict().items() if v is not None}
+    
+    if ("dob" in update_dict and update_dict["dob"]):
+        try:
+            if isinstance(update_dict["dob"], str):
+                from datetime import date as d_date
+                update_dict["dob"] = d_date.fromisoformat(update_dict["dob"])
+            update_dict["dob"] = datetime.combine(update_dict["dob"], datetime.min.time())
+        except Exception as e:
+            print(f"Error converting dob: {e}")
+            del update_dict["dob"] # Skip if invalid
+        
+    try:
+        updated_user = await prisma.user.update(
+            where={"id": current_user.id},
+            data=update_dict
+        )
+        return {
+            "id": updated_user.id,
+            "email": updated_user.email,
+            "name": updated_user.name,
+            "role": updated_user.role,
+            "phone": updated_user.phone,
+            "gender": updated_user.gender,
+            "dob": updated_user.dob.isoformat() if updated_user.dob else None,
+            "address": updated_user.address
+        }
+    except Exception as e:
+        print(f"Error updating profile: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+
+@app.post("/api/auth/change-password")
+async def change_password(data: PasswordChange, current_user=Depends(get_current_user)):
+    # Verify old password
+    user = await prisma.user.find_unique(where={"id": current_user.id})
+    if not verify_password(data.oldPassword, user.password):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+    
+    # Hash and update to new password
+    hashed_password = get_password_hash(data.newPassword)
+    await prisma.user.update(
+        where={"id": current_user.id},
+        data={"password": hashed_password}
+    )
+    return {"message": "Password updated successfully"}
 
 # RBAC Example Routes
 @app.get("/api/super-admin/stats")
@@ -155,11 +231,22 @@ async def super_admin_stats(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
         
         recent_activity = []
         for alert in recent_alerts:
+            # Calculate human-readable time
+            diff = datetime.now() - alert.createdAt.replace(tzinfo=None)
+            if diff.days > 0:
+                time_str = f"{diff.days}d ago"
+            elif diff.seconds > 3600:
+                time_str = f"{diff.seconds // 3600}h ago"
+            elif diff.seconds > 60:
+                time_str = f"{diff.seconds // 60}m ago"
+            else:
+                time_str = "Just now"
+
             recent_activity.append({
                 "id": f"alert-{alert.id}",
                 "title": alert.title,
                 "desc": alert.desc,
-                "time": "Recent", # Could format alert.createdAt
+                "time": time_str,
                 "type": "ALERT" if alert.type == "CRITICAL" else "WARNING"
             })
             
