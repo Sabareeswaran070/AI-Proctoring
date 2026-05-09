@@ -15,7 +15,11 @@ interface Student {
   createdAt: string;
 }
 
-const StudentsList: React.FC = () => {
+interface StudentsListProps {
+  onViewProfile?: (id: string) => void;
+}
+
+const StudentsList: React.FC<StudentsListProps> = ({ onViewProfile }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -182,7 +186,11 @@ const StudentsList: React.FC = () => {
                   </td>
                   <td>
                     <div className="action-cell">
-                      <button className="icon-btn" title="View Profile">
+                      <button 
+                        className="icon-btn" 
+                        title="View Profile"
+                        onClick={() => onViewProfile && onViewProfile(student.id)}
+                      >
                         <ArrowRight size={18} />
                       </button>
                       <button className="icon-btn" title="More Options">
@@ -293,8 +301,8 @@ const StudentsList: React.FC = () => {
 
         .secondary-btn {
           background: white;
-          color: #1a1f36;
-          border: 1px solid #e3e8ee;
+          color: var(--text-primary);
+          border: 1px solid var(--border-color);
           padding: 10px 18px;
           border-radius: 10px;
           font-weight: 600;
@@ -306,13 +314,13 @@ const StudentsList: React.FC = () => {
         }
 
         .secondary-btn:hover {
-          background: #f7fafc;
+          background: var(--bg-light);
           border-color: #cbd5e0;
         }
 
         .danger-btn {
           background: #FEF2F2;
-          color: #DC2626;
+          color: var(--error);
           border: 1px solid #FEE2E2;
           padding: 10px 18px;
           border-radius: 10px;
@@ -349,7 +357,7 @@ const StudentsList: React.FC = () => {
         .data-table-container {
           background: white;
           border-radius: 16px;
-          border: 1px solid #e3e8ee;
+          border: 1px solid var(--border-color);
           overflow: hidden;
           box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
@@ -362,19 +370,19 @@ const StudentsList: React.FC = () => {
 
         .data-table th {
           padding: 16px 20px;
-          background: #f8fafc;
-          color: #4f566b;
+          background: var(--bg-light);
+          color: var(--text-secondary);
           font-weight: 600;
           font-size: 13px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
-          border-bottom: 1px solid #e3e8ee;
+          border-bottom: 1px solid var(--border-color);
         }
 
         .data-table td {
           padding: 16px 20px;
           border-bottom: 1px solid #f1f4f8;
-          color: #1a1f36;
+          color: var(--text-primary);
           font-size: 15px;
         }
 
@@ -388,7 +396,7 @@ const StudentsList: React.FC = () => {
           width: 40px;
           height: 40px;
           background: #FFF5E6;
-          color: #FF8C00;
+          color: var(--accent-color);
           border-radius: 10px;
           display: flex;
           align-items: center;
@@ -404,24 +412,24 @@ const StudentsList: React.FC = () => {
 
         .student-name {
           font-weight: 600;
-          color: #1a1f36;
+          color: var(--text-primary);
         }
 
         .student-email {
           font-size: 13px;
-          color: #697386;
+          color: var(--text-muted);
         }
 
         .institution-cell, .date-cell {
           display: flex;
           align-items: center;
           gap: 8px;
-          color: #4f566b;
+          color: var(--text-secondary);
         }
 
         .badge-success {
           background: #ecfdf5;
-          color: #059669;
+          color: var(--success);
           padding: 4px 10px;
           border-radius: 20px;
           font-size: 12px;
@@ -431,7 +439,7 @@ const StudentsList: React.FC = () => {
 
         .badge-warning {
           background: #fffbeb;
-          color: #d97706;
+          color: var(--warning);
           padding: 4px 10px;
           border-radius: 20px;
           font-size: 12px;
@@ -441,7 +449,7 @@ const StudentsList: React.FC = () => {
 
         .badge-danger {
           background: #fef2f2;
-          color: #dc2626;
+          color: var(--error);
           padding: 4px 10px;
           border-radius: 20px;
           font-size: 12px;

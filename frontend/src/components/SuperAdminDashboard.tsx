@@ -32,6 +32,7 @@ import api from '../api';
 import './SuperAdminDashboard.css';
 import logo from '../assets/logo-icon.svg';
 import StudentsList from './StudentsList';
+import StudentProfile from './StudentProfile';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
@@ -56,7 +57,8 @@ const SuperAdminDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'students' | 'profile'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'students' | 'profile' | 'student-detail'>('dashboard');
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   
@@ -132,7 +134,7 @@ const SuperAdminDashboard: React.FC = () => {
             <span>Dashboard</span>
           </div>
           <div 
-            className={`nav-item ${currentView === 'students' ? 'active' : ''}`}
+            className={`nav-item ${currentView === 'students' || currentView === 'student-detail' ? 'active' : ''}`}
             onClick={() => setCurrentView('students')}
           >
             <Users size={18} />
@@ -431,7 +433,15 @@ const SuperAdminDashboard: React.FC = () => {
           </div>
           </>
           ) : currentView === 'students' ? (
-            <StudentsList />
+            <StudentsList onViewProfile={(id) => {
+              setSelectedStudentId(id);
+              setCurrentView('student-detail');
+            }} />
+          ) : currentView === 'student-detail' && selectedStudentId ? (
+            <StudentProfile 
+              studentId={selectedStudentId} 
+              onBack={() => setCurrentView('students')} 
+            />
           ) : (
             <ProfileSection user={user} data={data} />
           )}

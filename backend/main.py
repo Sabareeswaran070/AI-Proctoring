@@ -304,6 +304,22 @@ async def get_all_students(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
         print(f"Error fetching students: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch students")
 
+@app.get("/api/super-admin/students/{id}")
+async def get_student_detail(id: str, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        student = await prisma.user.find_unique(
+            where={"id": id},
+            include={"institution": True}
+        )
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        return student
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching student detail: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch student detail")
+
 @app.post("/api/super-admin/students")
 async def create_student(student: StudentCreate, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
     try:

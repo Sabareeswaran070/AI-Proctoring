@@ -302,8 +302,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
           .modal-tabs {
             display: flex;
             padding: 0 12px;
-            background: #f8fafc;
-            border-bottom: 1px solid #e3e8ee;
+            background: var(--bg-light);
+            border-bottom: 1px solid var(--border-color);
           }
 
           .tab-btn {
@@ -311,7 +311,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
             background: transparent;
             border: none;
             border-bottom: 2px solid transparent;
-            color: #697386;
+            color: var(--text-secondary);
             font-weight: 600;
             font-size: 14px;
             display: flex;
@@ -322,8 +322,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
           }
 
           .tab-btn.active {
-            color: #FF8C00;
-            border-bottom-color: #FF8C00;
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
           }
 
           .modal-form {
@@ -344,14 +344,14 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
             display: block;
             font-size: 13px;
             font-weight: 600;
-            color: #4f566b;
+            color: var(--text-secondary);
             margin-bottom: 8px;
           }
 
           .form-group input, .form-group select {
             width: 100%;
             padding: 10px 14px;
-            border: 1px solid #e3e8ee;
+            border: 1px solid var(--border-color);
             border-radius: 10px;
             font-size: 15px;
             transition: all 0.2s;
@@ -360,7 +360,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
 
           .form-group input:focus, .form-group select:focus {
             outline: none;
-            border-color: #FFA500;
+            border-color: var(--accent-color);
             box-shadow: 0 0 0 4px rgba(255, 165, 0, 0.1);
           }
 
@@ -429,22 +429,22 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
 
           .cancel-btn {
             background: white;
-            border: 1px solid #e3e8ee;
+            border: 1px solid var(--border-color);
             padding: 10px 24px;
             border-radius: 10px;
             font-weight: 600;
-            color: #4f566b;
+            color: var(--text-secondary);
             cursor: pointer;
             transition: all 0.2s;
           }
 
           .cancel-btn:hover {
-            background: #f8fafc;
+            background: var(--bg-light);
             border-color: #cbd5e0;
           }
 
           .submit-btn {
-            background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%);
+            background: var(--accent-color);
             color: white;
             border: none;
             padding: 10px 32px;
