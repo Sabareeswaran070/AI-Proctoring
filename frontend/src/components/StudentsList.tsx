@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, Filter, MoreVertical, User, Building2, Mail, Calendar, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Search, Filter, MoreVertical, User, Building2, Mail, Calendar, ArrowRight, ShieldAlert, Trash2, CheckSquare, Square } from 'lucide-react';
 import AddStudentModal from './AddStudentModal';
 
 interface Student {
@@ -20,6 +20,8 @@ const StudentsList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchStudents = async () => {
     try {
@@ -42,6 +44,36 @@ const StudentsList: React.FC = () => {
     student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.institution?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(filteredStudents.map(s => s.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectStudent = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} students? This action cannot be undone.`)) return;
+
+    setDeleting(true);
+    try {
+      await api.delete('/super-admin/students/bulk', { data: { ids: selectedIds } });
+      setStudents(prev => prev.filter(s => !selectedIds.includes(s.id)));
+      setSelectedIds([]);
+    } catch (error) {
+      console.error('Error deleting students:', error);
+      alert("Failed to delete students. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="module-container">
@@ -69,6 +101,12 @@ const StudentsList: React.FC = () => {
           />
         </div>
         <div className="filter-actions">
+          {selectedIds.length > 0 && (
+            <button className="danger-btn" onClick={handleBulkDelete} disabled={deleting}>
+              <Trash2 size={18} />
+              <span>Delete ({selectedIds.length})</span>
+            </button>
+          )}
           <button className="secondary-btn">
             <Filter size={18} />
             <span>Filter</span>
@@ -86,6 +124,13 @@ const StudentsList: React.FC = () => {
           <table className="data-table">
             <thead>
               <tr>
+                <th style={{ width: '40px' }}>
+                  <input 
+                    type="checkbox" 
+                    onChange={handleSelectAll} 
+                    checked={selectedIds.length === filteredStudents.length && filteredStudents.length > 0} 
+                  />
+                </th>
                 <th>Student</th>
                 <th>Institution</th>
                 <th>Joined Date</th>
@@ -95,7 +140,14 @@ const StudentsList: React.FC = () => {
             </thead>
             <tbody>
               {filteredStudents.map((student) => (
-                <tr key={student.id}>
+                <tr key={student.id} className={selectedIds.includes(student.id) ? 'selected-row' : ''}>
+                  <td>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedIds.includes(student.id)} 
+                      onChange={() => handleSelectStudent(student.id)} 
+                    />
+                  </td>
                   <td>
                     <div className="student-info-cell">
                       <div className="avatar-small">
@@ -201,6 +253,13 @@ const StudentsList: React.FC = () => {
           display: flex;
           gap: 16px;
           margin-bottom: 24px;
+          align-items: stretch;
+        }
+
+        .filter-actions {
+          display: flex;
+          gap: 12px;
+          align-items: center;
         }
 
         .search-box {
@@ -249,6 +308,42 @@ const StudentsList: React.FC = () => {
         .secondary-btn:hover {
           background: #f7fafc;
           border-color: #cbd5e0;
+        }
+
+        .danger-btn {
+          background: #FEF2F2;
+          color: #DC2626;
+          border: 1px solid #FEE2E2;
+          padding: 10px 18px;
+          border-radius: 10px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .danger-btn:hover:not(:disabled) {
+          background: #FEE2E2;
+          border-color: #FECACA;
+          transform: translateY(-1px);
+        }
+
+        .danger-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .selected-row {
+          background-color: #FFF9F0 !important;
+        }
+
+        .data-table input[type="checkbox"] {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+          accent-color: #FF8C00;
         }
 
         .data-table-container {

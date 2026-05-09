@@ -108,6 +108,9 @@ class PasswordChange(BaseModel):
     oldPassword: str
     newPassword: str
 
+class BulkDeleteRequest(BaseModel):
+    ids: List[str]
+
 # Auth Routes
 @app.post("/api/auth/login", response_model=Token)
 @limiter.limit("5/minute") # Rate limit login attempts
@@ -347,6 +350,21 @@ async def create_student(student: StudentCreate, admin=Depends(RoleChecker(["SUP
     except Exception as e:
         print(f"Error creating student: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/super-admin/students/bulk")
+async def bulk_delete_students(request: BulkDeleteRequest, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        # Delete many users with role STUDENT and IDs in the list
+        delete_result = await prisma.user.delete_many(
+            where={
+                "id": {"in": request.ids},
+                "role": "STUDENT"
+            }
+        )
+        return {"message": f"Successfully deleted {delete_result} students", "count": delete_result}
+    except Exception as e:
+        print(f"Error bulk deleting students: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete students")
 
 @app.get("/api/admin/dashboard")
 async def admin_dashboard(admin=Depends(RoleChecker(["SUPER_ADMIN", "COLLEGE_ADMIN"]))):

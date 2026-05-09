@@ -467,7 +467,7 @@ const ProfileSection = ({ user, data }: any) => {
   });
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
-  const [isChangePassModalOpen, setIsChangePassModalOpen] = useState(false);
+  const [showChangePass, setShowChangePass] = useState(false);
 
   useEffect(() => {
     if (user?.phone?.includes(' ')) {
@@ -502,6 +502,43 @@ const ProfileSection = ({ user, data }: any) => {
     }
   };
 
+  const [passData, setPassData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passLoading, setPassLoading] = useState(false);
+  const [passError, setPassError] = useState<string | null>(null);
+  const [passSuccess, setPassSuccess] = useState(false);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passData.newPassword !== passData.confirmPassword) {
+      setPassError("New passwords do not match");
+      return;
+    }
+    if (passData.newPassword.length < 6) {
+      setPassError("Password must be at least 6 characters");
+      return;
+    }
+
+    setPassLoading(true);
+    setPassError(null);
+    try {
+      await api.post('/auth/change-password', {
+        oldPassword: passData.oldPassword,
+        newPassword: passData.newPassword
+      });
+      setPassSuccess(true);
+      setPassData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => setPassSuccess(false), 5000);
+    } catch (err: any) {
+      setPassError(err.response?.data?.detail || "Failed to update password");
+    } finally {
+      setPassLoading(false);
+    }
+  };
+
   return (
   <div className="profile-container">
     <div className="breadcrumb">
@@ -530,13 +567,19 @@ const ProfileSection = ({ user, data }: any) => {
         </div>
       </div>
       <div className="summary-right">
-        <button className="change-pass-btn" onClick={() => setIsChangePassModalOpen(true)}><Lock size={16} /> Change Password</button>
+        <button 
+          className="change-pass-btn" 
+          onClick={() => setShowChangePass(!showChangePass)}
+          style={{ 
+            backgroundColor: showChangePass ? '#F3F4F6' : 'var(--sidebar-bg)',
+            color: showChangePass ? '#111111' : 'white',
+            border: '1px solid #E5E7EB'
+          }}
+        >
+          {showChangePass ? <X size={16} /> : <Lock size={16} />} 
+          {showChangePass ? 'Close Form' : 'Change Password'}
+        </button>
       </div>
-
-      <ChangePasswordModal 
-        isOpen={isChangePassModalOpen} 
-        onClose={() => setIsChangePassModalOpen(false)} 
-      />
     </div>
 
     <div className="profile-layout-grid">
@@ -654,39 +697,85 @@ const ProfileSection = ({ user, data }: any) => {
           </div>
         </div>
 
-        <div className="security-section">
-          <h3 className="card-title">Account & Security</h3>
-          <div className="security-cards-list">
-            <SecurityCard 
-              icon={<Shield size={20} />} 
-              title="Two-Factor Authentication" 
-              subtitle="Add an extra layer of security"
-              status="Active"
-              statusType="green"
-            />
-            <SecurityCard 
-              icon={<Activity size={20} />} 
-              title="Login Activity" 
-              subtitle="Recent sign-in locations"
-              status="Monitored"
-              statusType="blue"
-            />
-            <SecurityCard 
-              icon={<Monitor size={20} />} 
-              title="Active Sessions" 
-              subtitle="2 devices currently logged in"
-              status="2 Active"
-              statusType="purple"
-            />
-            <SecurityCard 
-              icon={<Key size={20} />} 
-              title="Password Strength" 
-              subtitle="Last changed 30 days ago"
-              status="Strong"
-              statusType="green"
-            />
+        {showChangePass && (
+          <div className="profile-card" style={{ marginTop: '24px', animation: 'fadeIn 0.3s ease-out' }}>
+            <div className="card-header" style={{ marginBottom: '20px' }}>
+              <h3 className="card-title">Change Password</h3>
+              <p className="card-subtitle">Update your account security credentials</p>
+            </div>
+            
+            <form onSubmit={handlePasswordChange} className="profile-form">
+              {passError && (
+                <div className="error-alert" style={{ marginBottom: '16px' }}>
+                  <AlertCircle size={18} />
+                  <span>{passError}</span>
+                </div>
+              )}
+              
+              {passSuccess && (
+                <div className="info-box" style={{ background: '#ecfdf5', color: '#047857', marginBottom: '20px', border: '1px solid #d1fae5' }}>
+                  <ShieldCheck size={18} />
+                  <span>Password updated successfully!</span>
+                </div>
+              )}
+              
+              <div className="form-group">
+                <label>Current Password *</label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="password" 
+                    required 
+                    value={passData.oldPassword}
+                    onChange={e => setPassData({...passData, oldPassword: e.target.value})}
+                    placeholder="Enter current password"
+                    style={{ paddingLeft: '40px' }}
+                  />
+                  <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#99A1AF' }} />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>New Password *</label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="password" 
+                    required 
+                    value={passData.newPassword}
+                    onChange={e => setPassData({...passData, newPassword: e.target.value})}
+                    placeholder="Minimum 6 characters"
+                    style={{ paddingLeft: '40px' }}
+                  />
+                  <Key size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#99A1AF' }} />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Confirm New Password *</label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="password" 
+                    required 
+                    value={passData.confirmPassword}
+                    onChange={e => setPassData({...passData, confirmPassword: e.target.value})}
+                    placeholder="Repeat new password"
+                    style={{ paddingLeft: '40px' }}
+                  />
+                  <ShieldCheck size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#99A1AF' }} />
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                className="save-btn-large" 
+                style={{ marginTop: '8px' }}
+                disabled={passLoading || passSuccess}
+              >
+                {passLoading ? <Loader2 className="animate-spin" size={18} style={{ marginRight: '8px' }} /> : null}
+                {passLoading ? 'Updating Password...' : 'Update Password'}
+              </button>
+            </form>
           </div>
-        </div>
+        )}
       </div>
     </div>
 
@@ -854,132 +943,5 @@ const TableRow = ({ name, inst, students, level, time, status }: any) => (
     </td>
   </tr>
 );
-
-const ChangePasswordModal = ({ isOpen, onClose }: any) => {
-  const [passData, setPassData] = useState({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passData.newPassword !== passData.confirmPassword) {
-      setError("New passwords do not match");
-      return;
-    }
-    if (passData.newPassword.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      await api.post('/auth/change-password', {
-        oldPassword: passData.oldPassword,
-        newPassword: passData.newPassword
-      });
-      setSuccess(true);
-      setTimeout(() => {
-        onClose();
-        setSuccess(false);
-        setPassData({ oldPassword: '', newPassword: '', confirmPassword: '' });
-      }, 2000);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to update password");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
-        <header className="modal-header">
-          <div>
-            <h2>Change Password</h2>
-            <p>Update your account security credentials</p>
-          </div>
-          <button className="close-btn" onClick={onClose}><X size={20} /></button>
-        </header>
-
-        <form onSubmit={handleSubmit} className="modal-form">
-          {error && (
-            <div className="error-alert">
-              <AlertCircle size={18} />
-              <span>{error}</span>
-            </div>
-          )}
-          
-          {success && (
-            <div className="info-box" style={{ background: '#ecfdf5', color: '#047857', marginBottom: '20px', border: '1px solid #d1fae5' }}>
-              <ShieldCheck size={18} />
-              <span>Password updated successfully! Closing...</span>
-            </div>
-          )}
-          
-          <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label>Current Password *</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="password" 
-                required 
-                value={passData.oldPassword}
-                onChange={e => setPassData({...passData, oldPassword: e.target.value})}
-                placeholder="Enter current password"
-                style={{ paddingLeft: '40px' }}
-              />
-              <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#99A1AF' }} />
-            </div>
-          </div>
-
-          <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label>New Password *</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="password" 
-                required 
-                value={passData.newPassword}
-                onChange={e => setPassData({...passData, newPassword: e.target.value})}
-                placeholder="Minimum 6 characters"
-                style={{ paddingLeft: '40px' }}
-              />
-              <Key size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#99A1AF' }} />
-            </div>
-          </div>
-
-          <div className="form-group" style={{ marginBottom: '8px' }}>
-            <label>Confirm New Password *</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="password" 
-                required 
-                value={passData.confirmPassword}
-                onChange={e => setPassData({...passData, confirmPassword: e.target.value})}
-                placeholder="Repeat new password"
-                style={{ paddingLeft: '40px' }}
-              />
-              <ShieldCheck size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#99A1AF' }} />
-            </div>
-          </div>
-
-          <footer className="modal-footer">
-            <button type="button" className="cancel-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="submit-btn" disabled={loading || success}>
-              {loading ? <Loader2 className="animate-spin" size={18} style={{ marginRight: '8px' }} /> : null}
-              {loading ? 'Updating...' : 'Update Password'}
-            </button>
-          </footer>
-        </form>
-      </div>
-    </div>
-  );
-};
 
 export default SuperAdminDashboard;
