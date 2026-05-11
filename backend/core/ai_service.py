@@ -63,7 +63,7 @@ async def generate_question(prompt: str, question_type: str):
             "correctAnswer": "Complete solution code"
         }}
         
-        For TRUE_FALSE:
+        For TRUE_FALSE or tf:
         {{
             "content": "Statement here",
             "correctAnswer": "true", (or "false")
@@ -74,6 +74,32 @@ async def generate_question(prompt: str, question_type: str):
         {{
             "content": "Detailed question text",
             "explanation": "Key points for answer"
+        }}
+
+        For FILL_BLANKS or blanks:
+        {{
+            "content": "The capital of France is ______.",
+            "correctAnswer": "Paris",
+            "explanation": "Paris is the capital and most populous city of France."
+        }}
+
+        For MATCHING or match:
+        {{
+            "content": "Match the countries with their capitals.",
+            "options": ["France:Paris", "Germany:Berlin", "Italy:Rome", "Spain:Madrid"],
+            "explanation": "Geographical capitals of European nations."
+        }}
+
+        For ASSIGNMENT:
+        {{
+            "content": "Create a research paper on the impact of AI in healthcare.",
+            "explanation": "Evaluation criteria: Depth of research, clarity, and citations."
+        }}
+
+        For CASE_STUDY:
+        {{
+            "content": "Scenario: A company is facing a data breach... Question: What are the immediate steps?",
+            "explanation": "Focus on incident response protocols."
         }}
         """
         

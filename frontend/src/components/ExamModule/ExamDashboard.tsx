@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   FileText, 
   Users, 
@@ -11,7 +11,11 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Calendar,
-  Layers
+  Layers,
+  Eye,
+  Send,
+  Pause,
+  Trash2
 } from 'lucide-react';
 import api from '../../api';
 import './ExamModule.css';
@@ -33,25 +37,78 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
   const [stats, setStats] = useState<ExamStats | null>(null);
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [statsRes, examsRes] = await Promise.all([
+        api.get('/super-admin/exams/stats'),
+        api.get('/super-admin/exams')
+      ]);
+      setStats(statsRes.data);
+      setExams(examsRes.data);
+    } catch (err) {
+      console.error('Error fetching exam dashboard data:', err);
+      showToast("Failed to fetch latest dashboard data.", 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const [statsRes, examsRes] = await Promise.all([
-          api.get('/super-admin/exams/stats'),
-          api.get('/super-admin/exams')
-        ]);
-        setStats(statsRes.data);
-        setExams(examsRes.data);
-      } catch (err) {
-        console.error('Error fetching exam dashboard data:', err);
-      } finally {
-        setLoading(false);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuId && !(event.target as Element).closest('.action-btn')) {
+        setOpenMenuId(null);
       }
     };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
-    fetchDashboardData();
-  }, []);
+  const handleAction = async (id: string, action: string) => {
+    try {
+      setOpenMenuId(null);
+      if (action === 'view') {
+        window.open(`/super-admin/exam-detail/${id}`, '_blank');
+        showToast("Opening exam details...");
+      } else if (action === 'publish') {
+        await api.put(`/super-admin/exams/${id}/status`, { status: 'PUBLISHED' });
+        showToast("Exam published successfully!");
+        fetchDashboardData();
+      } else if (action === 'hold') {
+        await api.put(`/super-admin/exams/${id}/status`, { status: 'HELD' });
+        showToast("Exam placed on hold.");
+        fetchDashboardData();
+      } else if (action === 'delete') {
+        if (window.confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
+          await api.delete(`/super-admin/exams/${id}`);
+          showToast("Exam deleted successfully.");
+          fetchDashboardData();
+        }
+      }
+    } catch (err) {
+      console.error(`Error performing ${action} on exam ${id}:`, err);
+      showToast(`Failed to ${action} exam.`, 'error');
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "-";
+    return d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  };
 
   return (
     <div className="exam-module-container">
@@ -79,7 +136,7 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
             <h3>Total Exams</h3>
             <div className="stat-value">{stats?.total ?? "-"}</div>
             <p className="stat-change" style={{ color: 'var(--success)' }}>
-              {stats?.total !== undefined ? <><ArrowUpRight size={12} /> Dashboard Live</> : "-"}
+              <ArrowUpRight size={12} /> Live Dashboard
             </p>
           </div>
           <div className="stat-icon" style={{ backgroundColor: '#F0F4FF' }}>
@@ -90,7 +147,7 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
           <div className="stat-info">
             <h3>Active Exams</h3>
             <div className="stat-value">{stats?.active ?? "-"}</div>
-            <p className="stat-change">{stats?.active !== undefined ? "Live Monitoring" : "-"}</p>
+            <p className="stat-change">Live Monitoring</p>
           </div>
           <div className="stat-icon" style={{ backgroundColor: '#ECFDF5' }}>
             <ActivityIcon />
@@ -100,7 +157,7 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
           <div className="stat-info">
             <h3>Upcoming Exams</h3>
             <div className="stat-value">{stats?.upcoming ?? "-"}</div>
-            <p className="stat-change">{stats?.upcoming !== undefined ? "Scheduled" : "-"}</p>
+            <p className="stat-change">Scheduled</p>
           </div>
           <div className="stat-icon" style={{ backgroundColor: '#FFF7ED' }}>
             <Calendar color="var(--accent-color)" />
@@ -108,64 +165,14 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
         </div>
         <div className="exam-stat-card">
           <div className="stat-info">
-            <h3>AI Proctoring Alerts</h3>
+            <h3>Proctoring Alerts</h3>
             <div className="stat-value">{stats?.alerts ?? "-"}</div>
-            <p className="stat-change" style={{ color: stats?.alerts && stats.alerts > 0 ? 'var(--error)' : 'inherit' }}>
-              {stats?.alerts !== undefined ? (stats.alerts > 0 ? <><AlertTriangle size={12} /> Requires review</> : "All clear") : "-"}
+            <p className="stat-change" style={{ color: (stats?.alerts ?? 0) > 0 ? 'var(--error)' : 'inherit' }}>
+              {(stats?.alerts ?? 0) > 0 ? <><AlertTriangle size={12} /> Review Required</> : "System Healthy"}
             </p>
           </div>
           <div className="stat-icon" style={{ backgroundColor: '#FFF1F2' }}>
             <AlertTriangle color="var(--error)" />
-          </div>
-        </div>
-      </div>
-
-      {/* Charts & Activity Section */}
-      <div className="content-grid">
-        <div className="card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h2 className="card-title">Exam Performance Analytics</h2>
-              <p className="card-subtitle">Pass rates and average scores across departments</p>
-            </div>
-            <div className="select-wrapper">
-              <select className="filter-select">
-                <option>Last 30 Days</option>
-                <option>Last 6 Months</option>
-              </select>
-            </div>
-          </div>
-          <div className="chart-placeholder">
-             {/* Simple Bar Chart SVG - Keeping visual structure but acknowledging lack of real dynamic chart data yet */}
-             <svg width="100%" height="240" viewBox="0 0 600 240">
-                {[40, 70, 55, 90, 65, 80, 45].map((h, i) => (
-                  <rect key={i} x={40 + i * 80} y={240 - (h * 2)} width="40" height={h * 2} fill={i === 3 ? 'var(--accent-color)' : '#E5E7EB'} rx="4" />
-                ))}
-                <line x1="0" y1="240" x2="600" y2="240" stroke="#E5E7EB" />
-             </svg>
-             <div className="chart-legend" style={{ marginTop: '10px' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Departments: CS, ME, EE, IT, CIVIL, ARCH, BIO</span>
-             </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Recent Exam Activity</h2>
-            <p className="card-subtitle">Latest actions and status changes</p>
-          </div>
-          <div className="activity-list">
-             {exams.length > 0 ? exams.slice(0, 3).map((exam) => (
-               <ActivityItem 
-                  key={exam.id}
-                  title={exam.title ?? "-"} 
-                  desc={`Exam for ${exam.department ?? "N/A"}`} 
-                  time={new Date(exam.createdAt).toLocaleDateString() ?? "-"} 
-                  status={exam.status ?? "Draft"}
-               />
-             )) : (
-               <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8' }}>No recent activity found.</div>
-             )}
           </div>
         </div>
       </div>
@@ -195,24 +202,49 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
             </tr>
           </thead>
           <tbody>
-            {exams.length > 0 ? exams.map((exam) => (
-              <ExamRow 
-                key={exam.id}
-                name={exam.title ?? "-"} 
-                dept={exam.department ?? "-"} 
-                date={exam.startTime ? new Date(exam.startTime).toLocaleString() : "-"} 
-                institution={exam.institution?.name ?? "-"} 
-                type={exam.type ?? "-"} 
-                status={exam.status ?? "-"} 
-              />
-            )) : (
+            {loading ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '40px' }}>No exams found in the database.</td>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '60px' }}>
+                  <div className="loader" style={{ margin: '0 auto' }}></div>
+                  <p style={{ marginTop: '10px', color: '#64748B' }}>Loading examinations...</p>
+                </td>
+              </tr>
+            ) : exams.length > 0 ? (
+              exams.map((exam) => (
+                <ExamRow 
+                  key={exam.id}
+                  name={exam.title ?? "-"} 
+                  dept={exam.department ?? "-"} 
+                  date={formatDate(exam.startTime)} 
+                  institution={exam.institution?.name ?? "-"} 
+                  type={exam.type ?? "-"} 
+                  status={exam.status ?? "-"} 
+                  onAction={(action: string) => handleAction(exam.id, action)}
+                  isOpen={openMenuId === exam.id}
+                  onToggleMenu={() => setOpenMenuId(openMenuId === exam.id ? null : exam.id)}
+                />
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '60px' }}>
+                   <div style={{ color: '#94A3B8' }}>
+                      <FileText size={48} style={{ opacity: 0.2, marginBottom: '12px' }} />
+                      <p>No exams found in the database.</p>
+                   </div>
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`toast-notification toast-${toast.type}`}>
+          {toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+          <span>{toast.message}</span>
+        </div>
+      )}
     </div>
   );
 };
@@ -233,44 +265,88 @@ const ActivityIcon = () => (
   </div>
 );
 
-const ActivityItem = ({ title, desc, time, status }: any) => (
-  <div className="activity-item">
-    <div className="activity-icon" style={{ backgroundColor: status === 'ONGOING' || status === 'COMPLETED' ? '#ECFDF5' : status === 'DRAFT' ? '#F3F4F6' : '#F0F4FF' }}>
-      <CheckCircle2 size={16} color={status === 'COMPLETED' ? 'var(--success)' : '#6A7282'} />
-    </div>
-    <div className="activity-content" style={{ flex: 1 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <span className="activity-title" style={{ fontWeight: 600 }}>{title}</span>
-        <span className="activity-time">{time}</span>
-      </div>
-      <p className="activity-desc">{desc}</p>
-    </div>
-  </div>
-);
-
-const ExamRow = ({ name, dept, date, institution, type, status }: any) => (
-  <tr>
+const ExamRow = ({ name, dept, date, institution, type, status, onAction, isOpen, onToggleMenu }: any) => (
+  <tr style={{ position: 'relative' }}>
     <td>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ width: 32, height: 32, borderRadius: '8px', backgroundColor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <FileText size={16} color="#6A7282" />
         </div>
-        <span style={{ fontWeight: 500 }}>{name}</span>
+        <span style={{ fontWeight: 600, color: '#1E293B' }}>{name}</span>
       </div>
     </td>
     <td>{dept}</td>
     <td>{date}</td>
     <td>{institution}</td>
-    <td><span style={{ padding: '4px 8px', borderRadius: '6px', background: '#F3F4F6', fontSize: '12px' }}>{type}</span></td>
+    <td><span style={{ padding: '4px 8px', borderRadius: '6px', background: '#F1F5F9', fontSize: '12px', fontWeight: 500 }}>{type}</span></td>
     <td>
-      <span className={`status-badge ${status === 'ONGOING' ? 'status-live' : status === 'SCHEDULED' ? 'status-scheduled' : ''}`} style={{ 
-        backgroundColor: status === 'COMPLETED' ? '#F3F4F6' : status === 'DRAFT' ? '#FFFBEB' : undefined,
-        color: status === 'COMPLETED' ? '#6A7282' : status === 'DRAFT' ? '#D08700' : undefined
+      <span className={`status-badge ${
+        status === 'ONGOING' ? 'status-live' : 
+        status === 'PUBLISHED' ? 'status-published' : 
+        status === 'HELD' ? 'status-held' : 
+        status === 'SCHEDULED' ? 'status-scheduled' :
+        status === 'DRAFT' ? 'status-draft' : ''
+      }`} style={{ 
+        fontWeight: 600
       }}>
         {status}
       </span>
     </td>
-    <td><MoreVertical size={16} color="#99A1AF" style={{ cursor: 'pointer' }} /></td>
+    <td style={{ position: 'relative' }}>
+      <button 
+        className="action-btn" 
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleMenu();
+        }}
+        style={{ 
+          background: 'none', 
+          border: 'none', 
+          cursor: 'pointer', 
+          padding: '8px',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'background 0.2s'
+        }}
+      >
+        <MoreVertical size={18} color={isOpen ? 'var(--accent-color)' : "#94A3B8"} />
+      </button>
+      
+      {isOpen && (
+        <div className="action-dropdown" style={{ 
+          position: 'absolute', 
+          right: '24px', 
+          top: '50%', 
+          transform: 'translateY(-50%)',
+          backgroundColor: 'white', 
+          boxShadow: '0 10px 25px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05)', 
+          borderRadius: '12px', 
+          zIndex: 9999, 
+          minWidth: '180px',
+          border: '1px solid #E2E8F0',
+          padding: '6px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px'
+        }}>
+          <button className="dropdown-item" onClick={() => onAction('view')} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 500, borderRadius: '8px' }}>
+            <Eye size={16} color="#64748B" /> View Details
+          </button>
+          <button className="dropdown-item" onClick={() => onAction('publish')} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 500, borderRadius: '8px' }}>
+            <Send size={16} color="#64748B" /> Publish Exam
+          </button>
+          <button className="dropdown-item" onClick={() => onAction('hold')} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 500, borderRadius: '8px' }}>
+            <Pause size={16} color="#64748B" /> Put on Hold
+          </button>
+          <div style={{ height: '1px', backgroundColor: '#F1F5F9', margin: '4px 8px' }}></div>
+          <button className="dropdown-item" onClick={() => onAction('delete')} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#EF4444', borderRadius: '8px' }}>
+            <Trash2 size={16} color="#EF4444" /> Delete Exam
+          </button>
+        </div>
+      )}
+    </td>
   </tr>
 );
 

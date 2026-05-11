@@ -5,6 +5,7 @@ import SuperAdminDashboard from './components/SuperAdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuthStore } from './store/useAuthStore';
 import api from './api';
+import ExamDetailView from './components/ExamModule/ExamDetailView';
 import './App.css';
 
 function App() {
@@ -56,6 +57,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
                 <SuperAdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/super-admin/exam-detail/:id"
+            element={
+              <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
+                <ExamDetailView />
               </ProtectedRoute>
             }
           />

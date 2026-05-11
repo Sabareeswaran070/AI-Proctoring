@@ -19,7 +19,11 @@ import {
   Layers,
   FileText,
   Sparkles,
-  Loader2
+  Loader2,
+  HelpCircle,
+  Type,
+  Link2,
+  BookOpen
 } from 'lucide-react';
 import api from '../../api';
 import './ExamModule.css';
@@ -120,40 +124,76 @@ const QuestionManagement: React.FC = () => {
           </div>
         </div>
 
-        <div className="exam-types-grid">
+        <div className="exam-types-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <TypeCard 
-            icon={<CheckCircle2 size={32} color="var(--success)" />} 
+            icon={<HelpCircle size={32} color="var(--info)" />} 
             title="Multiple Choice (MCQ)" 
             desc="Objective questions with multiple options and one or more correct answers."
             onClick={() => {
-              setNewQuestion(prev => ({ ...prev, type: 'MCQ' }));
+              setNewQuestion(prev => ({ ...prev, type: 'mcq' }));
               setView('create');
             }}
           />
           <TypeCard 
-            icon={<Code size={32} color="var(--accent-color)" />} 
-            title="Coding Problem" 
-            desc="Interactive coding challenges with test cases and automated evaluation."
-            onClick={() => {
-              setNewQuestion(prev => ({ ...prev, type: 'CODING' }));
-              setView('create');
-            }}
-          />
-          <TypeCard 
-            icon={<FileText size={32} color="var(--info)" />} 
+            icon={<CheckCircle2 size={32} color="var(--success)" />} 
             title="True / False" 
             desc="Simple binary choice questions for quick conceptual validation."
             onClick={() => {
-              setNewQuestion(prev => ({ ...prev, type: 'TRUE_FALSE' }));
+              setNewQuestion(prev => ({ ...prev, type: 'tf' }));
               setView('create');
             }}
           />
           <TypeCard 
-            icon={<Layers size={32} color="#111" />} 
+            icon={<Layers size={32} color="var(--accent-color)" />} 
             title="Descriptive" 
             desc="Subjective questions requiring detailed written answers and manual grading."
             onClick={() => {
-              setNewQuestion(prev => ({ ...prev, type: 'DESCRIPTIVE' }));
+              setNewQuestion(prev => ({ ...prev, type: 'descriptive' }));
+              setView('create');
+            }}
+          />
+          <TypeCard 
+            icon={<Code size={32} color="#111" />} 
+            title="Coding Problem" 
+            desc="Interactive coding challenges with test cases and automated evaluation."
+            onClick={() => {
+              setNewQuestion(prev => ({ ...prev, type: 'coding' }));
+              setView('create');
+            }}
+          />
+          <TypeCard 
+            icon={<Type size={32} color="#8B5CF6" />} 
+            title="Fill in the Blanks" 
+            desc="Assess vocabulary and conceptual knowledge by filling missing parts."
+            onClick={() => {
+              setNewQuestion(prev => ({ ...prev, type: 'blanks' }));
+              setView('create');
+            }}
+          />
+          <TypeCard 
+            icon={<Link2 size={32} color="#EC4899" />} 
+            title="Match the Following" 
+            desc="Relationship and terminology based assessments using pairs."
+            onClick={() => {
+              setNewQuestion(prev => ({ ...prev, type: 'match' }));
+              setView('create');
+            }}
+          />
+          <TypeCard 
+            icon={<Upload size={32} color="#10B981" />} 
+            title="Assignment Upload" 
+            desc="Project or document based submissions for comprehensive evaluation."
+            onClick={() => {
+              setNewQuestion(prev => ({ ...prev, type: 'assignment' }));
+              setView('create');
+            }}
+          />
+          <TypeCard 
+            icon={<BookOpen size={32} color="#F59E0B" />} 
+            title="Case Study" 
+            desc="Scenario-based analytical assessments with complex narratives."
+            onClick={() => {
+              setNewQuestion(prev => ({ ...prev, type: 'case-study' }));
               setView('create');
             }}
           />
@@ -242,10 +282,14 @@ const QuestionManagement: React.FC = () => {
               <div className="form-field">
                 <label>Question Type</label>
                 <select value={newQuestion.type} onChange={(e) => setNewQuestion({...newQuestion, type: e.target.value})}>
-                  <option value="MCQ">Multiple Choice (MCQ)</option>
-                  <option value="CODING">Coding Problem</option>
-                  <option value="TRUE_FALSE">True / False</option>
-                  <option value="DESCRIPTIVE">Descriptive</option>
+                  <option value="mcq">Multiple Choice (MCQ)</option>
+                  <option value="tf">True / False</option>
+                  <option value="descriptive">Descriptive</option>
+                  <option value="coding">Coding Problem</option>
+                  <option value="blanks">Fill in the Blanks</option>
+                  <option value="match">Match the Following</option>
+                  <option value="assignment">Assignment Upload</option>
+                  <option value="case-study">Case Study</option>
                 </select>
               </div>
               <div className="form-field">
@@ -258,7 +302,7 @@ const QuestionManagement: React.FC = () => {
               </div>
             </div>
 
-            {newQuestion.type === 'MCQ' && (
+            {(newQuestion.type === 'MCQ' || newQuestion.type === 'mcq') && (
               <div className="form-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
                 <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Options & Correct Answer</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -290,7 +334,7 @@ const QuestionManagement: React.FC = () => {
               </div>
             )}
 
-            {newQuestion.type === 'CODING' && (
+            {(newQuestion.type === 'CODING' || newQuestion.type === 'coding') && (
               <div className="form-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
                 <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Coding Challenge Configuration</h3>
                 <div className="form-field">
@@ -304,7 +348,7 @@ const QuestionManagement: React.FC = () => {
               </div>
             )}
 
-            {newQuestion.type === 'TRUE_FALSE' && (
+            {(newQuestion.type === 'TRUE_FALSE' || newQuestion.type === 'tf') && (
               <div className="form-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
                 <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Select Correct Answer</h3>
                 <div style={{ display: 'flex', gap: '24px' }}>
@@ -316,6 +360,74 @@ const QuestionManagement: React.FC = () => {
                     <input type="radio" name="tf" value="false" checked={newQuestion.correctAnswer === 'false'} onChange={() => setNewQuestion({...newQuestion, correctAnswer: 'false'})} />
                     False
                   </label>
+                </div>
+              </div>
+            )}
+
+            {newQuestion.type === 'blanks' && (
+              <div className="form-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Fill in the Blanks Configuration</h3>
+                <div className="form-field">
+                  <label>Correct Answer (The missing word)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Paris"
+                    value={newQuestion.correctAnswer}
+                    onChange={(e) => setNewQuestion({...newQuestion, correctAnswer: e.target.value})}
+                  />
+                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Use '______' in the Question Content to represent the blank.</p>
+                </div>
+              </div>
+            )}
+
+            {newQuestion.type === 'match' && (
+              <div className="form-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Match the Following Pairs</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                   {newQuestion.options.map((opt, i) => (
+                     <div key={i} className="form-field">
+                        <label>Pair {i + 1} (Left:Right)</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Apple:Red"
+                          value={opt}
+                          onChange={(e) => {
+                            const newOpts = [...newQuestion.options];
+                            newOpts[i] = e.target.value;
+                            setNewQuestion({...newQuestion, options: newOpts});
+                          }}
+                        />
+                     </div>
+                   ))}
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '8px' }}>Enter pairs separated by a colon (:). Left side will be the key, right side the value.</p>
+              </div>
+            )}
+
+            {newQuestion.type === 'assignment' && (
+              <div className="form-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Assignment Submission Rules</h3>
+                <div className="form-field">
+                  <label>Max File Size (MB)</label>
+                  <input type="number" placeholder="10" defaultValue="10" />
+                </div>
+                <div className="form-field" style={{ marginTop: '12px' }}>
+                  <label>Allowed File Types</label>
+                  <input type="text" placeholder=".pdf, .zip, .docx" defaultValue=".pdf, .zip" />
+                </div>
+              </div>
+            )}
+
+            {newQuestion.type === 'case-study' && (
+              <div className="form-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Case Study Passage</h3>
+                <div className="form-field">
+                  <label>Additional Context / Scenario</label>
+                  <textarea 
+                    rows={6} 
+                    placeholder="Enter the detailed scenario or case study text here..."
+                    style={{ fontSize: '14px' }}
+                  ></textarea>
                 </div>
               </div>
             )}

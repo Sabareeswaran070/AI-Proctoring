@@ -70,6 +70,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<'dashboard' | 'students' | 'profile' | 'student-detail' | 'faculty' | 'exams' | 'exam-types' | 'create-exam' | 'questions' | 'ai-proctoring-exam' | 'coding-exam' | 'assignments' | 'results' | 'reports'>('dashboard');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [selectedExamType, setSelectedExamType] = useState<string | null>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   
@@ -491,10 +492,16 @@ const SuperAdminDashboard: React.FC = () => {
           ) : currentView === 'exam-types' ? (
             <ExamTypes 
               onBack={() => setCurrentView('exams')} 
-              onCreateType={(type) => setCurrentView('create-exam')} 
+              onCreateType={(type) => {
+                setSelectedExamType(type);
+                setCurrentView('create-exam');
+              }} 
             />
           ) : currentView === 'create-exam' ? (
-            <CreateExam onBack={() => setCurrentView('exam-types')} />
+            <CreateExam 
+              type={selectedExamType} 
+              onBack={() => setCurrentView('exam-types')} 
+            />
           ) : currentView === 'questions' ? (
             <QuestionManagement />
           ) : currentView === 'ai-proctoring-exam' ? (

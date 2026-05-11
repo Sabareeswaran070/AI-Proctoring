@@ -57,6 +57,7 @@ model User {
   updatedAt     DateTime     @updatedAt
   exams         Exam[]       @relation("ExamProctor")
   studentExams  StudentExam[]
+  alerts        Alert[]
 }
 
 model Institution {
@@ -80,6 +81,9 @@ model Exam {
   institution   Institution @relation(fields: [institutionId], references: [id])
   proctorId     String
   proctor       User         @relation("ExamProctor", fields: [proctorId], references: [id])
+  duration      Int          @default(0)
+  type          String       @default("MCQ")
+  department    String?
   students      StudentExam[]
   alerts        Alert[]
   createdAt     DateTime     @default(now())
@@ -100,11 +104,26 @@ model StudentExam {
   @@unique([studentId, examId])
 }
 
+model Question {
+  id            String   @id @default(uuid())
+  content       String
+  category      String?
+  type          String   @default("MCQ")
+  difficulty    String   @default("MEDIUM")
+  institutionId String?
+  options       String[]
+  correctAnswer String?
+  explanation   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 model Alert {
   id        String    @id @default(uuid())
   examId    String
   exam      Exam      @relation(fields: [examId], references: [id])
-  studentId String
+  studentId String?
+  student   User?      @relation(fields: [studentId], references: [id])
   title     String
   desc      String
   type      AlertType @default(WARNING)
@@ -113,8 +132,11 @@ model Alert {
 }
 
 enum ExamStatus {
+  DRAFT
+  PUBLISHED
   SCHEDULED
   ONGOING
+  HELD
   COMPLETED
   CANCELLED
 }

@@ -742,7 +742,7 @@ async def get_all_exams(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
         exams = await prisma.exam.find_many(
             include={
                 "institution": True,
-                "createdBy": True
+                "proctor": True
             },
             order={"createdAt": "desc"}
         )
@@ -771,6 +771,70 @@ async def get_exam_stats(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
     except Exception as e:
         print(f"Error fetching exam stats: {e}")
         return {"total": 0, "active": 0, "upcoming": 0, "completed": 0, "alerts": 0}
+
+@router.get("/exams/{id}")
+async def get_exam_detail(id: str, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        exam = await prisma.exam.find_unique(
+            where={"id": id},
+            include={
+                "institution": True,
+                "proctor": True,
+                "students": {
+                    "include": {"student": True}
+                }
+            }
+        )
+        if not exam:
+            raise HTTPException(status_code=404, detail="Exam not found")
+        return exam
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching exam detail: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch exam detail")
+
+@router.put("/exams/{id}/status")
+async def update_exam_status(id: str, status_data: dict, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        new_status = status_data.get("status")
+        # Valid statuses based on enum in schema.prisma
+        valid_statuses = ["DRAFT", "PUBLISHED", "SCHEDULED", "ONGOING", "HELD", "COMPLETED", "CANCELLED"]
+        if new_status not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Invalid status: {new_status}")
+        
+        updated_exam = await prisma.exam.update(
+            where={"id": id},
+            data={"status": new_status}
+        )
+        return updated_exam
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating exam status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update exam status")
+
+@router.delete("/exams/{id}")
+async def delete_exam(id: str, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        # Check if exam exists
+        exam = await prisma.exam.find_unique(where={"id": id})
+        if not exam:
+            raise HTTPException(status_code=404, detail="Exam not found")
+        
+        # Delete related alerts first if any (cascade usually handles this if defined, but being safe)
+        await prisma.alert.delete_many(where={"examId": id})
+        # Delete student assignments
+        await prisma.studentexam.delete_many(where={"examId": id})
+        
+        # Delete the exam
+        await prisma.exam.delete(where={"id": id})
+        return {"message": "Exam deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting exam: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete exam")
 
 @router.get("/questions")
 async def get_all_questions(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
@@ -805,7 +869,7 @@ async def get_question_stats(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
 async def get_proctoring_alerts(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
     try:
         alerts = await prisma.alert.find_many(
-            include={"exam": True, "user": True},
+            include={"exam": True, "student": True},
             order={"createdAt": "desc"},
             take=50
         )
