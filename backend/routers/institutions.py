@@ -7,6 +7,23 @@ from datetime import datetime
 
 router = APIRouter(prefix="/api/super-admin/institutions", tags=["Institutions"])
 
+async def get_institution_relation_counts(institution_id: str) -> dict[str, int]:
+    relation_counts: dict[str, int] = {}
+
+    for table, label in [
+        ("User", "users"),
+        ("Exam", "exams"),
+        ("Department", "departments"),
+        ("Announcement", "announcements"),
+    ]:
+        result = await prisma.query_raw(
+            f'SELECT COUNT(*)::int AS count FROM "{table}" WHERE "institutionId" = $1',
+            institution_id,
+        )
+        relation_counts[label] = int(result[0]["count"]) if result else 0
+
+    return relation_counts
+
 @router.get("/")
 async def get_all_institutions(
     status: Optional[str] = None,
@@ -28,19 +45,19 @@ async def get_all_institutions(
     
     institutions = await prisma.institution.find_many(
         where=where,
-        include={
-            "_count": {
-                "select": {
-                    "users": True,
-                    "exams": True,
-                    "departments": True
-                }
-            }
-        },
         order={"createdAt": "desc"}
     )
-    return institutions
 
+    enriched_institutions = []
+    for institution in institutions:
+        counts = await get_institution_relation_counts(institution.id)
+        institution_data = institution.model_dump()
+        institution_data["_count"] = counts
+        enriched_institutions.append(institution_data)
+
+    return enriched_institutions
+
+@router.post("")
 @router.post("/")
 async def create_institution(
     data: InstitutionCreate,
@@ -72,17 +89,18 @@ async def get_institution_detail(
         where={"id": id},
         include={
             "departments": True,
-            "_count": {
-                "select": {
-                    "users": True,
-                    "exams": True
-                }
-            }
         }
     )
     if not institution:
         raise HTTPException(status_code=404, detail="Institution not found")
-    return institution
+
+    institution_data = institution.model_dump()
+    counts = await get_institution_relation_counts(id)
+    institution_data["_count"] = {
+        "users": counts["users"],
+        "exams": counts["exams"],
+    }
+    return institution_data
 
 @router.put("/{id}")
 async def update_institution(
@@ -113,9 +131,29 @@ async def delete_institution(
 ):
     if current_user.role != "SUPER_ADMIN":
         raise HTTPException(status_code=403, detail="Not authorized")
-    
-    await prisma.institution.delete(where={"id": id})
-    return {"message": "Institution deleted successfully"}
+    try:
+        institution = await prisma.institution.find_unique(where={"id": id})
+        if not institution:
+            raise HTTPException(status_code=404, detail="Institution not found")
+
+        relation_counts = await get_institution_relation_counts(id)
+        if any(relation_counts.values()):
+            linked_summary = ", ".join(
+                f"{name}: {count}"
+                for name, count in relation_counts.items()
+                if count > 0
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot delete institution because linked records still exist ({linked_summary}).",
+            )
+
+        await prisma.institution.delete(where={"id": id})
+        return {"message": "Institution deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete institution: {str(e)}")
 
 @router.post("/bulk-delete")
 async def bulk_delete_institutions(

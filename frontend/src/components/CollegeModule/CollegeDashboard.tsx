@@ -1,19 +1,50 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Users, 
-  UserCheck, 
   FileText, 
-  Calendar, 
-  TrendingUp, 
   AlertCircle,
-  Activity,
-  ArrowUpRight,
-  LayoutDashboard
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
+import api from '../../api';
 import './CollegeModule.css';
 
+interface DashboardStats {
+  institutions: number;
+  total_students: number;
+  active_exams: number;
+  suspicious_alerts: number;
+  recent_activity: {
+    id: string | number;
+    title: string;
+    desc: string;
+    time: string;
+    type: string;
+  }[];
+}
+
 const CollegeDashboard: React.FC = () => {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/super-admin/stats');
+        setStats(response.data);
+      } catch (err) {
+        console.error('Failed to fetch institution dashboard stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const fmtNum = (n: number) =>
+    n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+
   return (
     <div className="college-dashboard">
       <div style={{ marginBottom: '32px' }}>
@@ -21,103 +52,106 @@ const CollegeDashboard: React.FC = () => {
         <p className="ey-subtitle">Aggregated performance analytics across all registered institutions.</p>
       </div>
 
+      {/* Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '40px' }}>
-        <StatCard title="Total Colleges" value="42" change="+3 this month" icon={<Building2 size={24} />} />
-        <StatCard title="Total Students" value="12,850" change="+12% YoY" icon={<Users size={24} />} />
-        <StatCard title="Active Exams" value="184" change="Live sessions" icon={<FileText size={24} />} />
-        <StatCard title="Proctoring Alerts" value="26" change="Critical level" icon={<AlertCircle size={24} color="var(--error)" />} />
+        <StatCard
+          title="Total Colleges"
+          value={loading ? '—' : fmtNum(stats?.institutions ?? 0)}
+          change="Registered institutions"
+          icon={<Building2 size={24} />}
+          loading={loading}
+        />
+        <StatCard
+          title="Total Students"
+          value={loading ? '—' : fmtNum(stats?.total_students ?? 0)}
+          change="Enrolled across all institutes"
+          icon={<Users size={24} />}
+          loading={loading}
+        />
+        <StatCard
+          title="Active Exams"
+          value={loading ? '—' : fmtNum(stats?.active_exams ?? 0)}
+          change="Live sessions right now"
+          icon={<FileText size={24} />}
+          loading={loading}
+        />
+        <StatCard
+          title="Proctoring Alerts"
+          value={loading ? '—' : fmtNum(stats?.suspicious_alerts ?? 0)}
+          change="Flagged events total"
+          icon={<AlertCircle size={24} color={stats && stats.suspicious_alerts > 0 ? 'var(--error)' : undefined} />}
+          loading={loading}
+        />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-        <div className="ey-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h3 style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '13px', color: 'var(--text-secondary)' }}>Institution Performance Overview</h3>
-            <select className="ey-input" style={{ width: '150px', padding: '8px' }}>
-              <option>Last 30 Days</option>
-              <option>Last 6 Months</option>
-            </select>
+      {/* Activity Feed */}
+      <div className="ey-card" style={{ maxWidth: '680px' }}>
+        <h3 style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+          Recent System Activity
+        </h3>
+
+        {loading ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)', padding: '20px 0' }}>
+            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+            <span>Loading activity...</span>
           </div>
-          <div style={{ height: '300px', display: 'flex', alignItems: 'flex-end', gap: '20px', padding: '20px 0' }}>
-            {/* Mock Chart Bars */}
-            {[65, 40, 85, 55, 90, 70, 45, 80].map((h, i) => (
-              <div key={i} style={{ flex: 1, position: 'relative' }}>
-                <div style={{ 
-                  height: `${h}%`, 
-                  background: i === 4 ? 'var(--accent-color)' : 'var(--text-primary)', 
-                  width: '100%',
-                  borderRadius: '4px 4px 0 0'
-                }}></div>
-                <div style={{ fontSize: '10px', textAlign: 'center', marginTop: '8px', fontWeight: 600, color: 'var(--text-secondary)' }}>M{i+1}</div>
-              </div>
+        ) : stats?.recent_activity && stats.recent_activity.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {stats.recent_activity.map((item) => (
+              <ActivityItem
+                key={item.id}
+                title={item.title}
+                desc={item.desc}
+                time={item.time}
+                type={item.type}
+              />
             ))}
           </div>
-        </div>
-
-        <div className="ey-card">
-          <h3 style={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>Recent Critical Activity</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <ActivityItem 
-              title="New Institution Registered" 
-              desc="MIT University - Boston Campus" 
-              time="2h ago" 
-              type="NEW" 
-            />
-            <ActivityItem 
-              title="High Risk Alert" 
-              desc="Exam ID: 892 - Stanford College" 
-              time="4h ago" 
-              type="ALERT" 
-            />
-            <ActivityItem 
-              title="Contract Expiring" 
-              desc="Oxford Global - 15 Days left" 
-              time="1d ago" 
-              type="EXPIRY" 
-            />
-            <ActivityItem 
-              title="Bulk Data Import" 
-              desc="2,400 Students - IIT Bombay" 
-              time="2d ago" 
-              type="INFO" 
-            />
+        ) : (
+          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
+            <AlertCircle size={36} style={{ opacity: 0.15, marginBottom: '12px' }} />
+            <p style={{ fontSize: '14px' }}>No recent activity found.</p>
           </div>
-          <button className="ey-btn-outline" style={{ width: '100%', marginTop: '20px' }}>View All Activity</button>
-        </div>
+        )}
       </div>
     </div>
   );
 };
 
-const StatCard = ({ title, value, change, icon }: any) => (
+const StatCard = ({ title, value, change, icon, loading }: any) => (
   <div className="ey-card ey-stat-card">
     <div>
       <div className="ey-stat-label">{title}</div>
-      <div className="ey-stat-value">{value}</div>
+      <div className="ey-stat-value">
+        {loading
+          ? <span style={{ opacity: 0.3, fontSize: '18px' }}>Loading…</span>
+          : value}
+      </div>
       <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
         <TrendingUp size={12} /> {change}
       </div>
     </div>
-    <div className="ey-stat-icon">
-      {icon}
-    </div>
+    <div className="ey-stat-icon">{icon}</div>
   </div>
 );
 
-const ActivityItem = ({ title, desc, time, type }: any) => (
-  <div style={{ display: 'flex', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
-    <div style={{ 
-      width: '4px', 
-      height: '40px', 
-      background: type === 'ALERT' ? 'var(--error)' : type === 'NEW' ? 'var(--accent-color)' : 'var(--text-primary)',
-      flexShrink: 0,
-      borderRadius: '2px'
-    }}></div>
-    <div>
-      <div style={{ fontWeight: 600, fontSize: '14px' }}>{title}</div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{desc}</div>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{time}</div>
+const ActivityItem = ({ title, desc, time, type }: any) => {
+  const barColor =
+    type === 'ALERT' ? 'var(--error)' :
+    type === 'NEW'   ? 'var(--accent-color)' :
+    type === 'SUCCESS' ? '#22c55e' :
+    'var(--text-primary)';
+
+  return (
+    <div style={{ display: 'flex', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
+      <div style={{ width: '4px', height: '40px', background: barColor, flexShrink: 0, borderRadius: '2px' }} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: '14px' }}>{title}</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{desc}</div>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{time}</div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default CollegeDashboard;

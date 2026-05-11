@@ -160,7 +160,7 @@ const CollegeProfile: React.FC<CollegeProfileProps> = ({ id, onBack }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <StatRow icon={<Users size={18} />} label="Total Registered" value={college._count?.users || 0} />
               <StatRow icon={<FileText size={18} />} label="Total Exams" value={college._count?.exams || 0} />
-              <StatRow icon={<Clock size={18} />} label="Proctoring Hours" value="1,240h" />
+              <StatRow icon={<Clock size={18} />} label="Proctoring Hours" value="N/A" />
             </div>
           </div>
         </div>

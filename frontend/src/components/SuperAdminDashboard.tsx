@@ -122,27 +122,25 @@ const SuperAdminDashboard: React.FC = () => {
   }, []);
 
   const renderInstitutionTabs = () => (
-    <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid var(--border-color)', marginBottom: '32px' }}>
-      <button
-        className={`page-btn ${currentView === 'college-dashboard' ? 'active' : ''}`}
-        onClick={() => setCurrentView('college-dashboard')}
-        style={{ borderBottom: currentView === 'college-dashboard' ? '2px solid var(--accent-color)' : 'none', borderRadius: 0 }}
-      >Overview</button>
-      <button
-        className={`page-btn ${currentView === 'colleges' ? 'active' : ''}`}
-        onClick={() => setCurrentView('colleges')}
-        style={{ borderBottom: currentView === 'colleges' ? '2px solid var(--accent-color)' : 'none', borderRadius: 0 }}
-      >Institutions</button>
-      <button
-        className={`page-btn ${currentView === 'departments' ? 'active' : ''}`}
-        onClick={() => setCurrentView('departments')}
-        style={{ borderBottom: currentView === 'departments' ? '2px solid var(--accent-color)' : 'none', borderRadius: 0 }}
-      >Departments</button>
-      <button
-        className={`page-btn ${currentView === 'announcements' ? 'active' : ''}`}
-        onClick={() => setCurrentView('announcements')}
-        style={{ borderBottom: currentView === 'announcements' ? '2px solid var(--accent-color)' : 'none', borderRadius: 0 }}
-      >Announcements</button>
+    <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid var(--border-color)', marginBottom: '32px' }}>
+      {[
+        { key: 'college-dashboard', label: 'Overview'      },
+        { key: 'colleges',          label: 'Institutions'  },
+        { key: 'departments',       label: 'Departments'   },
+        { key: 'announcements',     label: 'Announcements' },
+      ].map(tab => (
+        <button
+          key={tab.key}
+          className={`page-btn ${currentView === tab.key ? 'active' : ''}`}
+          onClick={() => setCurrentView(tab.key as any)}
+          style={{
+            borderBottom: currentView === tab.key ? '2px solid var(--accent-color)' : '2px solid transparent',
+            borderRadius: 0,
+          }}
+        >
+          {tab.label}
+        </button>
+      ))}
     </div>
   );
 
@@ -184,7 +182,7 @@ const SuperAdminDashboard: React.FC = () => {
             <span>Students</span>
           </div>
           <div 
-            className={`nav-item ${currentView === 'college-dashboard' || currentView === 'colleges' || currentView === 'college-detail' || currentView === 'departments' || currentView === 'announcements' ? 'active' : ''}`}
+            className={`nav-item ${currentView === 'college-dashboard' || currentView === 'colleges' || currentView === 'college-detail' || currentView === 'college-add' || currentView === 'departments' || currentView === 'announcements' ? 'active' : ''}`}
             onClick={() => setCurrentView('college-dashboard')}
           >
             <Building size={18} />
