@@ -14,7 +14,10 @@ import {
   X,
   ChevronLeft,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  Code,
+  Layers,
+  FileText
 } from 'lucide-react';
 import api from '../../api';
 import './ExamModule.css';
@@ -27,7 +30,7 @@ interface QuestionStats {
 }
 
 const QuestionManagement: React.FC = () => {
-  const [view, setView] = useState<'list' | 'create'>('list');
+  const [view, setView] = useState<'list' | 'types' | 'create'>('list');
   const [questions, setQuestions] = useState<any[]>([]);
   const [stats, setStats] = useState<QuestionStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,11 +77,66 @@ const QuestionManagement: React.FC = () => {
     }
   };
 
-  if (view === 'create') {
+  if (view === 'types') {
     return (
       <div className="exam-module-container">
         <div className="breadcrumb" style={{ cursor: 'pointer' }} onClick={() => setView('list')}>
           <ChevronLeft size={14} /> Back to Question Bank
+        </div>
+        <div className="exam-header">
+          <div>
+            <h1 className="page-title">Select Question Type</h1>
+            <p className="page-subtitle">Choose the format of the question you want to add to the repository.</p>
+          </div>
+        </div>
+
+        <div className="exam-types-grid">
+          <TypeCard 
+            icon={<CheckCircle2 size={32} color="var(--success)" />} 
+            title="Multiple Choice (MCQ)" 
+            desc="Objective questions with multiple options and one or more correct answers."
+            onClick={() => {
+              setNewQuestion(prev => ({ ...prev, type: 'MCQ' }));
+              setView('create');
+            }}
+          />
+          <TypeCard 
+            icon={<Code size={32} color="var(--accent-color)" />} 
+            title="Coding Problem" 
+            desc="Interactive coding challenges with test cases and automated evaluation."
+            onClick={() => {
+              setNewQuestion(prev => ({ ...prev, type: 'CODING' }));
+              setView('create');
+            }}
+          />
+          <TypeCard 
+            icon={<FileText size={32} color="var(--info)" />} 
+            title="True / False" 
+            desc="Simple binary choice questions for quick conceptual validation."
+            onClick={() => {
+              setNewQuestion(prev => ({ ...prev, type: 'TRUE_FALSE' }));
+              setView('create');
+            }}
+          />
+          <TypeCard 
+            icon={<Layers size={32} color="#111" />} 
+            title="Descriptive" 
+            desc="Subjective questions requiring detailed written answers and manual grading."
+            onClick={() => {
+              setNewQuestion(prev => ({ ...prev, type: 'DESCRIPTIVE' }));
+              setView('create');
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'create') {
+    return (
+      <div className="exam-module-container">
+        <div className="breadcrumb" style={{ cursor: 'pointer' }} onClick={() => setView('types')}>
+          <ChevronLeft size={14} /> Back to Type Selection
         </div>
 
         <div className="exam-header">
@@ -169,6 +227,36 @@ const QuestionManagement: React.FC = () => {
               </div>
             )}
 
+            {newQuestion.type === 'CODING' && (
+              <div className="form-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Coding Challenge Configuration</h3>
+                <div className="form-field">
+                  <label>Initial Code Template</label>
+                  <textarea rows={6} placeholder="def solution():\n    # your code here" style={{ fontFamily: 'monospace' }}></textarea>
+                </div>
+                <div className="form-field" style={{ marginTop: '16px' }}>
+                  <label>Test Cases (JSON Format)</label>
+                  <textarea rows={4} placeholder='[{"input": "1", "output": "1"}]' style={{ fontFamily: 'monospace' }}></textarea>
+                </div>
+              </div>
+            )}
+
+            {newQuestion.type === 'TRUE_FALSE' && (
+              <div className="form-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Select Correct Answer</h3>
+                <div style={{ display: 'flex', gap: '24px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input type="radio" name="tf" value="true" checked={newQuestion.correctAnswer === 'true'} onChange={() => setNewQuestion({...newQuestion, correctAnswer: 'true'})} />
+                    True
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input type="radio" name="tf" value="false" checked={newQuestion.correctAnswer === 'false'} onChange={() => setNewQuestion({...newQuestion, correctAnswer: 'false'})} />
+                    False
+                  </label>
+                </div>
+              </div>
+            )}
+
             <div className="form-field">
               <label>Explanation (Optional)</label>
               <textarea 
@@ -199,7 +287,7 @@ const QuestionManagement: React.FC = () => {
           <button 
             className="page-btn active" 
             style={{ backgroundColor: 'var(--sidebar-bg)', color: 'white' }}
-            onClick={() => setView('create')}
+            onClick={() => setView('types')}
           >
             <Plus size={18} />
             Add Question
@@ -350,6 +438,17 @@ const CodeIcon = ({ color }: any) => (
     <polyline points="16 18 22 12 16 6"></polyline>
     <polyline points="8 6 2 12 8 18"></polyline>
   </svg>
+);
+
+const TypeCard = ({ icon, title, desc, onClick }: any) => (
+  <div className="exam-type-card" onClick={onClick}>
+    <div className="exam-type-icon">
+      {icon}
+    </div>
+    <h3>{title}</h3>
+    <p>{desc}</p>
+    <button className="create-btn-sm">Select Format</button>
+  </div>
 );
 
 export default QuestionManagement;
