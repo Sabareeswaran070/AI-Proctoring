@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BarChart3, 
   PieChart, 
@@ -12,9 +12,33 @@ import {
   ArrowUpRight,
   MoreVertical
 } from 'lucide-react';
+import api from '../../api';
 import './ExamModule.css';
 
 const ResultsAnalytics: React.FC = () => {
+  const [stats, setStats] = useState<any>(null);
+  const [topPerformers, setTopPerformers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchResultsData = async () => {
+      try {
+        const [statsRes, performersRes] = await Promise.all([
+          api.get('/super-admin/results/stats'),
+          api.get('/super-admin/results/top-performers')
+        ]);
+        setStats(statsRes.data);
+        setTopPerformers(performersRes.data);
+      } catch (err) {
+        console.error('Error fetching results data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResultsData();
+  }, []);
+
   return (
     <div className="exam-module-container">
       <div className="exam-header">
@@ -35,10 +59,10 @@ const ResultsAnalytics: React.FC = () => {
       </div>
 
       <div className="exam-stats-grid">
-         <MetricCard title="Average Pass Rate" value="84.2%" change="+2.4%" positive={true} icon={<Users />} />
-         <MetricCard title="Total Students Evaluated" value="12,450" change="+12%" positive={true} icon={<FileText />} />
-         <MetricCard title="Average Score" value="72/100" change="-1.2%" positive={false} icon={<BarChart3 />} />
-         <MetricCard title="Top Percentile (90+)" value="1,204" change="+5.1%" positive={true} icon={<PieChart />} />
+         <MetricCard title="Average Pass Rate" value={stats?.avg_pass_rate ?? "-"} change="+2.4%" positive={true} icon={<Users />} />
+         <MetricCard title="Total Students Evaluated" value={stats?.total_evaluated ?? "-"} change="+12%" positive={true} icon={<FileText />} />
+         <MetricCard title="Average Score" value={stats?.avg_score ?? "-"} change="-1.2%" positive={false} icon={<BarChart3 />} />
+         <MetricCard title="Top Percentile (90+)" value={stats?.top_percentile ?? "-"} change="+5.1%" positive={true} icon={<PieChart />} />
       </div>
 
       <div className="content-grid">
@@ -112,10 +136,20 @@ const ResultsAnalytics: React.FC = () => {
                </tr>
             </thead>
             <tbody>
-               <RankRow rank={1} name="Sarah Johnson" inst="MIT University" score="98/100" perc="99.9" />
-               <RankRow rank={2} name="David Miller" inst="Stanford Academy" score="96/100" perc="99.5" />
-               <RankRow rank={3} name="Emma Wilson" inst="MIT University" score="95/100" perc="99.2" />
-               <RankRow rank={4} name="James Brown" inst="Oxford Institute" score="94/100" perc="98.8" />
+               {topPerformers.length > 0 ? topPerformers.map((p) => (
+                  <RankRow 
+                    key={p.rank}
+                    rank={p.rank} 
+                    name={p.name ?? "-"} 
+                    inst={p.institution ?? "-"} 
+                    score={p.score ?? "-"} 
+                    perc={p.percentile ?? "-"} 
+                  />
+               )) : (
+                 <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '40px' }}>No performance data available.</td>
+                 </tr>
+               )}
             </tbody>
          </table>
       </div>
@@ -160,3 +194,4 @@ const RankRow = ({ rank, name, inst, score, perc }: any) => (
 );
 
 export default ResultsAnalytics;
+

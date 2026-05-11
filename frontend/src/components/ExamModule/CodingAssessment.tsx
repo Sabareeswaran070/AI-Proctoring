@@ -16,7 +16,18 @@ import './ExamModule.css';
 
 const CodingAssessment: React.FC = () => {
   const [language, setLanguage] = useState('python');
-  const [code, setCode] = useState(`# Write your code here\ndef solve():\n    print("Hello AI Proctoring")\n\nsolve()`);
+  const [code, setCode] = useState(`# Start building your coding challenge\n\ndef solution():\n    # Implement your logic here\n    pass`);
+  const [output, setOutput] = useState<string[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+
+  const handleRunCode = () => {
+    setIsRunning(true);
+    // Simulate API call for code execution
+    setTimeout(() => {
+      setOutput(['> Running solution...', 'Process completed with exit code 0']);
+      setIsRunning(false);
+    }, 1500);
+  };
 
   return (
     <div className="exam-module-container">
@@ -30,9 +41,14 @@ const CodingAssessment: React.FC = () => {
             <Layout size={18} />
             Layout
           </button>
-          <button className="page-btn active" style={{ backgroundColor: 'var(--success)', color: 'white', borderColor: 'var(--success)' }}>
+          <button 
+            className="page-btn active" 
+            onClick={handleRunCode}
+            disabled={isRunning}
+            style={{ backgroundColor: 'var(--success)', color: 'white', borderColor: 'var(--success)', opacity: isRunning ? 0.7 : 1 }}
+          >
             <Play size={18} />
-            Run Test Cases
+            {isRunning ? "Running..." : "Run Test Cases"}
           </button>
         </div>
       </div>
@@ -60,10 +76,10 @@ const CodingAssessment: React.FC = () => {
                 <option value="javascript">JavaScript (Node.js)</option>
               </select>
               <div style={{ width: '1px', height: '20px', background: '#444' }}></div>
-              <span style={{ fontSize: '12px', color: '#888' }}>main.py</span>
+              <span style={{ fontSize: '12px', color: '#888' }}>{language === 'python' ? 'main.py' : language === 'java' ? 'Main.java' : 'script.js'}</span>
             </div>
             <div style={{ display: 'flex', gap: '16px' }}>
-              <RotateCcw size={16} color="#888" style={{ cursor: 'pointer' }} title="Reset Code" />
+              <RotateCcw size={16} color="#888" style={{ cursor: 'pointer' }} title="Reset Code" onClick={() => setCode('')} />
               <Settings size={16} color="#888" style={{ cursor: 'pointer' }} />
               <Maximize2 size={16} color="#888" style={{ cursor: 'pointer' }} />
             </div>
@@ -72,10 +88,11 @@ const CodingAssessment: React.FC = () => {
             className="code-area"
             value={code}
             onChange={(e) => setCode(e.target.value)}
+            placeholder="// Type your solution here..."
             spellCheck={false}
           ></textarea>
           <div style={{ padding: '8px 20px', background: '#252526', borderTop: '1px solid #333', display: 'flex', justifyContent: 'space-between' }}>
-             <span style={{ fontSize: '12px', color: '#888' }}>Ln 5, Col 8</span>
+             <span style={{ fontSize: '12px', color: '#888' }}>Ln {code.split('\n').length}, Col {code.split('\n').pop()?.length ?? 0}</span>
              <span style={{ fontSize: '12px', color: '#888' }}>UTF-8</span>
           </div>
         </div>
@@ -94,21 +111,25 @@ const CodingAssessment: React.FC = () => {
                 fontFamily: 'var(--mono)',
                 fontSize: '13px',
                 color: '#1E293B',
-                border: '1px solid var(--border-color)'
+                border: '1px solid var(--border-color)',
+                minHeight: '150px'
               }}>
-                 <div style={{ color: '#64748B', marginBottom: '8px' }}>{'>'} Running main.py...</div>
-                 <div style={{ color: '#059669' }}>Hello AI Proctoring</div>
-                 <div style={{ marginTop: '16px', color: '#64748B' }}>[Process completed with exit code 0]</div>
+                 {output.length > 0 ? output.map((line, i) => (
+                   <div key={i} style={{ color: line.startsWith('>') ? '#64748B' : line.includes('error') ? 'var(--error)' : '#059669', marginBottom: '4px' }}>
+                     {line}
+                   </div>
+                 )) : (
+                   <div style={{ color: '#94A3B8', textAlign: 'center', marginTop: '40px' }}>Run the code to see output.</div>
+                 )}
               </div>
            </div>
 
            <div className="card" style={{ padding: '20px' }}>
               <h3 className="card-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Test Cases</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                 <TestCaseRow label="Test Case 1" status="passed" />
-                 <TestCaseRow label="Test Case 2" status="passed" />
-                 <TestCaseRow label="Test Case 3" status="failed" />
-                 <TestCaseRow label="Hidden Case" status="locked" />
+                 <div style={{ textAlign: 'center', color: '#94A3B8', fontSize: '13px', padding: '10px' }}>
+                    No test cases defined for this problem.
+                 </div>
               </div>
            </div>
 
@@ -116,7 +137,7 @@ const CodingAssessment: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                  <div>
                     <span style={{ fontSize: '12px', color: '#94A3B8' }}>Execution Time</span>
-                    <div style={{ fontSize: '18px', fontWeight: 600 }}>0.42s</div>
+                    <div style={{ fontSize: '18px', fontWeight: 600 }}>{isRunning ? "..." : "-"}</div>
                  </div>
                  <Clock size={24} color="var(--accent-color)" />
               </div>
@@ -127,22 +148,5 @@ const CodingAssessment: React.FC = () => {
   );
 };
 
-const TestCaseRow = ({ label, status }: any) => (
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    padding: '10px 12px',
-    background: status === 'passed' ? '#ECFDF5' : status === 'failed' ? '#FEF2F2' : '#F8FAFC',
-    borderRadius: '6px',
-    border: '1px solid',
-    borderColor: status === 'passed' ? '#D1FAE5' : status === 'failed' ? '#FEE2E2' : '#E2E8F0'
-  }}>
-    <span style={{ fontSize: '13px', fontWeight: 500, color: '#1E293B' }}>{label}</span>
-    {status === 'passed' ? <CheckCircle2 size={16} color="var(--success)" /> : 
-     status === 'failed' ? <XCircle size={16} color="var(--error)" /> : 
-     <Clock size={16} color="#94A3B8" />}
-  </div>
-);
-
 export default CodingAssessment;
+

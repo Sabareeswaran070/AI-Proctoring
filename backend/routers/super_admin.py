@@ -730,3 +730,152 @@ async def bulk_import_faculty(file: UploadFile = File(...), admin=Depends(RoleCh
         if isinstance(general_error, HTTPException):
             raise general_error
         raise HTTPException(status_code=400, detail=f"Unexpected error: {str(general_error)}")
+
+# ─────────────────────────────────────────────────────────────
+#  EXAM & QUESTION BANK ENDPOINTS
+# ─────────────────────────────────────────────────────────────
+
+@router.get("/exams")
+async def get_all_exams(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        exams = await prisma.exam.find_many(
+            include={
+                "institution": True,
+                "createdBy": True
+            },
+            order={"createdAt": "desc"}
+        )
+        return exams
+    except Exception as e:
+        print(f"Error fetching exams: {e}")
+        return []
+
+@router.get("/exams/stats")
+async def get_exam_stats(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        total = await prisma.exam.count()
+        active = await prisma.exam.count(where={"status": "ONGOING"})
+        upcoming = await prisma.exam.count(where={"status": "SCHEDULED"})
+        completed = await prisma.exam.count(where={"status": "COMPLETED"})
+        
+        alerts = await prisma.alert.count()
+        
+        return {
+            "total": total,
+            "active": active,
+            "upcoming": upcoming,
+            "completed": completed,
+            "alerts": alerts
+        }
+    except Exception as e:
+        print(f"Error fetching exam stats: {e}")
+        return {"total": 0, "active": 0, "upcoming": 0, "completed": 0, "alerts": 0}
+
+@router.get("/questions")
+async def get_all_questions(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        questions = await prisma.question.find_many(
+            order={"createdAt": "desc"}
+        )
+        return questions
+    except Exception as e:
+        print(f"Error fetching questions: {e}")
+        return []
+
+@router.get("/questions/stats")
+async def get_question_stats(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        total = await prisma.question.count()
+        mcq = await prisma.question.count(where={"type": "MCQ"})
+        coding = await prisma.question.count(where={"type": "CODING"})
+        
+        # Simple difficulty calculation or hardcoded for now if not in schema
+        return {
+            "total": total,
+            "mcq": mcq,
+            "coding": coding,
+            "avg_difficulty": "Moderate"
+        }
+    except Exception as e:
+        print(f"Error fetching question stats: {e}")
+        return {"total": 0, "mcq": 0, "coding": 0, "avg_difficulty": "-"}
+
+@router.get("/proctoring/alerts")
+async def get_proctoring_alerts(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        alerts = await prisma.alert.find_many(
+            include={"exam": True, "user": True},
+            order={"createdAt": "desc"},
+            take=50
+        )
+        return alerts
+    except Exception as e:
+        print(f"Error fetching alerts: {e}")
+        return []
+
+@router.get("/results/stats")
+async def get_result_stats(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        # These are mock values for now until Result model is fully populated
+        return {
+            "avg_pass_rate": "84.2%",
+            "total_evaluated": 12450,
+            "avg_score": "72/100",
+            "top_percentile": 1204
+        }
+    except Exception as e:
+        return {"avg_pass_rate": "-", "total_evaluated": 0, "avg_score": "-", "top_percentile": 0}
+
+@router.post("/exams")
+async def create_exam(exam_data: dict, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        # Simplistic implementation for now
+        new_exam = await prisma.exam.create(
+            data={
+                "title": exam_data.get("title"),
+                "description": exam_data.get("description"),
+                "startTime": exam_data.get("startTime"),
+                "endTime": exam_data.get("endTime"),
+                "duration": int(exam_data.get("duration", 0)),
+                "type": exam_data.get("type", "MCQ"),
+                "status": "SCHEDULED",
+                "department": exam_data.get("department"),
+                # Add other fields as needed
+            }
+        )
+        return new_exam
+    except Exception as e:
+        print(f"Error creating exam: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/questions")
+async def create_question(question_data: dict, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        new_question = await prisma.question.create(
+            data={
+                "content": question_data.get("content"),
+                "category": question_data.get("category"),
+                "type": question_data.get("type"),
+                "difficulty": question_data.get("difficulty"),
+                "institutionId": question_data.get("institutionId"),
+                # options and correct answer logic here
+            }
+        )
+        return new_question
+    except Exception as e:
+        print(f"Error creating question: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/results/top-performers")
+async def get_top_performers(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        # Mocking top performers
+        return [
+            {"rank": 1, "name": "Sarah Johnson", "institution": "MIT University", "score": "98/100", "percentile": "99.9"},
+            {"rank": 2, "name": "David Miller", "institution": "Stanford Academy", "score": "96/100", "percentile": "99.5"},
+            {"rank": 3, "name": "Emma Wilson", "institution": "MIT University", "score": "95/100", "percentile": "99.2"},
+            {"rank": 4, "name": "James Brown", "institution": "Oxford Institute", "score": "94/100", "percentile": "98.8"},
+        ]
+    except Exception as e:
+        return []
+

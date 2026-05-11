@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Users, 
   Building, 
@@ -10,9 +10,29 @@ import {
   ArrowRight,
   UserPlus
 } from 'lucide-react';
+import api from '../../api';
 import './ExamModule.css';
 
 const StudentAssignmentModule: React.FC = () => {
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCount, setSelectedCount] = useState(0);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const response = await api.get('/super-admin/students');
+        setStudents(response.data);
+      } catch (err) {
+        console.error('Error fetching students:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, []);
+
   return (
     <div className="exam-module-container">
       <div className="exam-header">
@@ -58,10 +78,19 @@ const StudentAssignmentModule: React.FC = () => {
                   </tr>
                </thead>
                <tbody>
-                  <StudentRow name="John Doe" id="STU001" dept="Computer Science" inst="MIT" />
-                  <StudentRow name="Jane Smith" id="STU002" dept="Computer Science" inst="MIT" />
-                  <StudentRow name="Alice Brown" id="STU003" dept="Information Tech" inst="MIT" />
-                  <StudentRow name="Bob Wilson" id="STU004" dept="Electrical Eng" inst="MIT" />
+                  {students.length > 0 ? students.map((s) => (
+                    <StudentRow 
+                      key={s.id}
+                      name={s.name ?? "-"} 
+                      id={s.studentId ?? "-"} 
+                      dept={s.department ?? "-"} 
+                      inst={s.institution?.name ?? "-"} 
+                    />
+                  )) : (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>No students found to assign.</td>
+                    </tr>
+                  )}
                </tbody>
             </table>
          </div>
@@ -72,19 +101,17 @@ const StudentAssignmentModule: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                <div className="summary-item">
                   <span className="label">Selected Exam:</span>
-                  <span className="value">Mid-Term Python 2026</span>
+                  <span className="value">-</span>
                </div>
                <div className="summary-item">
                   <span className="label">Target Groups:</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
-                     <span className="tag">MIT College</span>
-                     <span className="tag">CS Department</span>
-                     <span className="tag">Section A</span>
+                     <span style={{ fontSize: '12px', color: '#64748B' }}>None selected</span>
                   </div>
                </div>
                <div className="summary-item">
                   <span className="label">Total Students:</span>
-                  <span className="value">450 Students</span>
+                  <span className="value">0 Students</span>
                </div>
                <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', marginTop: '10px' }}>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#1E293B', marginBottom: '4px' }}>System Note:</div>
@@ -127,7 +154,7 @@ const StudentRow = ({ name, id, dept, inst }: any) => (
     <td>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px' }}>
-            {name.charAt(0)}
+            {name ? name.charAt(0) : "?"}
          </div>
          <span style={{ fontWeight: 500 }}>{name}</span>
       </div>
@@ -140,3 +167,4 @@ const StudentRow = ({ name, id, dept, inst }: any) => (
 );
 
 export default StudentAssignmentModule;
+

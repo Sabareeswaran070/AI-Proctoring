@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Plus, 
   Upload, 
@@ -10,11 +10,180 @@ import {
   Eye,
   FileSpreadsheet,
   Tag,
-  BarChart3
+  BarChart3,
+  X,
+  ChevronLeft,
+  Save,
+  CheckCircle2
 } from 'lucide-react';
+import api from '../../api';
 import './ExamModule.css';
 
+interface QuestionStats {
+  total: number;
+  mcq: number;
+  coding: number;
+  avg_difficulty: string;
+}
+
 const QuestionManagement: React.FC = () => {
+  const [view, setView] = useState<'list' | 'create'>('list');
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [stats, setStats] = useState<QuestionStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [newQuestion, setNewQuestion] = useState({
+    content: '',
+    category: 'Algorithms',
+    type: 'MCQ',
+    difficulty: 'MEDIUM',
+    explanation: '',
+    correctAnswer: '',
+    options: ['', '', '', '']
+  });
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [qRes, sRes] = await Promise.all([
+        api.get('/super-admin/questions'),
+        api.get('/super-admin/questions/stats')
+      ]);
+      setQuestions(qRes.data);
+      setStats(sRes.data);
+    } catch (err) {
+      console.error('Error fetching questions:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleAddQuestion = async () => {
+    try {
+      await api.post('/super-admin/questions', newQuestion);
+      alert('Question added successfully!');
+      setView('list');
+      setNewQuestion({ content: '', category: 'Algorithms', type: 'MCQ', difficulty: 'MEDIUM', explanation: '', correctAnswer: '', options: ['', '', '', ''] });
+      fetchData();
+    } catch (err) {
+      console.error('Error adding question:', err);
+      alert('Failed to add question.');
+    }
+  };
+
+  if (view === 'create') {
+    return (
+      <div className="exam-module-container">
+        <div className="breadcrumb" style={{ cursor: 'pointer' }} onClick={() => setView('list')}>
+          <ChevronLeft size={14} /> Back to Question Bank
+        </div>
+
+        <div className="exam-header">
+          <div>
+            <h1 className="page-title">Add New Question</h1>
+            <p className="page-subtitle">Create a new entry for the global question repository.</p>
+          </div>
+          <div className="header-actions">
+            <button className="page-btn" onClick={() => setView('list')}>Cancel</button>
+            <button className="page-btn active" style={{ backgroundColor: 'var(--accent-color)', color: 'white', borderColor: 'var(--accent-color)' }} onClick={handleAddQuestion}>
+              <Save size={18} /> Save Question
+            </button>
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '32px' }}>
+          <div className="profile-form" style={{ gap: '24px' }}>
+            <div className="form-group">
+              <label>Question Content *</label>
+              <textarea 
+                rows={4} 
+                placeholder="Enter the question text here..."
+                value={newQuestion.content}
+                onChange={(e) => setNewQuestion({...newQuestion, content: e.target.value})}
+                style={{ fontSize: '15px' }}
+              ></textarea>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+              <div className="form-group">
+                <label>Category</label>
+                <select value={newQuestion.category} onChange={(e) => setNewQuestion({...newQuestion, category: e.target.value})}>
+                  <option>Algorithms</option>
+                  <option>Data Structures</option>
+                  <option>Web Tech</option>
+                  <option>Database Management</option>
+                  <option>Artificial Intelligence</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Question Type</label>
+                <select value={newQuestion.type} onChange={(e) => setNewQuestion({...newQuestion, type: e.target.value})}>
+                  <option value="MCQ">Multiple Choice (MCQ)</option>
+                  <option value="CODING">Coding Problem</option>
+                  <option value="TRUE_FALSE">True / False</option>
+                  <option value="DESCRIPTIVE">Descriptive</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Difficulty Level</label>
+                <select value={newQuestion.difficulty} onChange={(e) => setNewQuestion({...newQuestion, difficulty: e.target.value})}>
+                  <option value="EASY">Easy</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HARD">Hard</option>
+                </select>
+              </div>
+            </div>
+
+            {newQuestion.type === 'MCQ' && (
+              <div className="form-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Options & Correct Answer</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                   {newQuestion.options.map((opt, i) => (
+                     <div key={i} className="form-group">
+                        <label>Option {String.fromCharCode(65 + i)}</label>
+                        <input 
+                          type="text" 
+                          placeholder={`Enter option ${String.fromCharCode(65 + i)}`}
+                          value={opt}
+                          onChange={(e) => {
+                            const newOpts = [...newQuestion.options];
+                            newOpts[i] = e.target.value;
+                            setNewQuestion({...newQuestion, options: newOpts});
+                          }}
+                        />
+                     </div>
+                   ))}
+                </div>
+                <div className="form-group" style={{ marginTop: '16px' }}>
+                  <label>Correct Answer Index (0-3)</label>
+                  <select value={newQuestion.correctAnswer} onChange={(e) => setNewQuestion({...newQuestion, correctAnswer: e.target.value})}>
+                    <option value="0">Option A</option>
+                    <option value="1">Option B</option>
+                    <option value="2">Option C</option>
+                    <option value="3">Option D</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            <div className="form-group">
+              <label>Explanation (Optional)</label>
+              <textarea 
+                rows={2} 
+                placeholder="Explain the correct solution..."
+                value={newQuestion.explanation}
+                onChange={(e) => setNewQuestion({...newQuestion, explanation: e.target.value})}
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="exam-module-container">
       <div className="exam-header">
@@ -27,7 +196,11 @@ const QuestionManagement: React.FC = () => {
             <FileSpreadsheet size={18} />
             Bulk Import (Excel)
           </button>
-          <button className="page-btn active" style={{ backgroundColor: 'var(--sidebar-bg)', color: 'white' }}>
+          <button 
+            className="page-btn active" 
+            style={{ backgroundColor: 'var(--sidebar-bg)', color: 'white' }}
+            onClick={() => setView('create')}
+          >
             <Plus size={18} />
             Add Question
           </button>
@@ -39,28 +212,28 @@ const QuestionManagement: React.FC = () => {
         <div className="exam-stat-card" style={{ padding: '16px 24px' }}>
           <div className="stat-info">
             <h3 style={{ fontSize: '12px' }}>Total Questions</h3>
-            <div className="stat-value" style={{ fontSize: '20px' }}>2,450</div>
+            <div className="stat-value" style={{ fontSize: '20px' }}>{stats?.total ?? "-"}</div>
           </div>
           <Tag size={20} color="var(--info)" />
         </div>
         <div className="exam-stat-card" style={{ padding: '16px 24px' }}>
           <div className="stat-info">
             <h3 style={{ fontSize: '12px' }}>MCQ Questions</h3>
-            <div className="stat-value" style={{ fontSize: '20px' }}>1,820</div>
+            <div className="stat-value" style={{ fontSize: '20px' }}>{stats?.mcq ?? "-"}</div>
           </div>
           <CheckCircleIcon color="var(--success)" />
         </div>
         <div className="exam-stat-card" style={{ padding: '16px 24px' }}>
           <div className="stat-info">
             <h3 style={{ fontSize: '12px' }}>Coding Problems</h3>
-            <div className="stat-value" style={{ fontSize: '20px' }}>142</div>
+            <div className="stat-value" style={{ fontSize: '20px' }}>{stats?.coding ?? "-"}</div>
           </div>
           <CodeIcon color="var(--accent-color)" />
         </div>
         <div className="exam-stat-card" style={{ padding: '16px 24px' }}>
           <div className="stat-info">
             <h3 style={{ fontSize: '12px' }}>Avg. Difficulty</h3>
-            <div className="stat-value" style={{ fontSize: '20px' }}>Moderate</div>
+            <div className="stat-value" style={{ fontSize: '20px' }}>{stats?.avg_difficulty ?? "-"}</div>
           </div>
           <BarChart3 size={20} color="var(--warning)" />
         </div>
@@ -98,50 +271,34 @@ const QuestionManagement: React.FC = () => {
               <th>Category</th>
               <th>Type</th>
               <th>Difficulty</th>
-              <th>Used In</th>
+              <th>Institution</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <QuestionRow 
-              content="Explain the difference between Merge Sort and Quick Sort algorithms..." 
-              category="Algorithms" 
-              type="Descriptive" 
-              difficulty="Hard" 
-              used="12 Exams" 
-            />
-            <QuestionRow 
-              content="Which of the following is not a primitive data type in Java?" 
-              category="Java Programming" 
-              type="MCQ" 
-              difficulty="Easy" 
-              used="45 Exams" 
-            />
-            <QuestionRow 
-              content="Write a program to find the longest palindromic substring in a given string..." 
-              category="Coding" 
-              type="Coding" 
-              difficulty="Medium" 
-              used="8 Exams" 
-            />
-            <QuestionRow 
-              content="The Big-O complexity of binary search is O(log n). (True/False)" 
-              category="DSA" 
-              type="T/F" 
-              difficulty="Easy" 
-              used="18 Exams" 
-            />
+            {questions.length > 0 ? questions.map((q) => (
+              <QuestionRow 
+                key={q.id}
+                content={q.content ?? "-"} 
+                category={q.category ?? "-"} 
+                type={q.type ?? "-"} 
+                difficulty={q.difficulty ?? "-"} 
+                institution={q.institution?.name ?? "-"} 
+              />
+            )) : (
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '40px' }}>No questions found in the repository.</td>
+              </tr>
+            )}
           </tbody>
         </table>
         
         <div className="pagination">
-          <span className="page-subtitle">Showing 1-10 of 2,450 questions</span>
+          <span className="page-subtitle">Showing {questions.length} questions</span>
           <div className="pagination-buttons">
-            <button className="page-btn">Prev</button>
+            <button className="page-btn" disabled>Prev</button>
             <button className="page-btn active">1</button>
-            <button className="page-btn">2</button>
-            <button className="page-btn">3</button>
-            <button className="page-btn">Next</button>
+            <button className="page-btn" disabled>Next</button>
           </div>
         </div>
       </div>
@@ -149,7 +306,7 @@ const QuestionManagement: React.FC = () => {
   );
 };
 
-const QuestionRow = ({ content, category, type, difficulty, used }: any) => (
+const QuestionRow = ({ content, category, type, difficulty, institution }: any) => (
   <tr>
     <td><input type="checkbox" /></td>
     <td>
@@ -161,12 +318,12 @@ const QuestionRow = ({ content, category, type, difficulty, used }: any) => (
     <td><span style={{ padding: '4px 8px', borderRadius: '6px', background: '#F3F4F6', fontSize: '12px' }}>{type}</span></td>
     <td>
       <span style={{ 
-        color: difficulty === 'Easy' ? 'var(--success)' : difficulty === 'Medium' ? 'var(--warning)' : 'var(--error)',
+        color: difficulty === 'EASY' ? 'var(--success)' : difficulty === 'MEDIUM' ? 'var(--warning)' : difficulty === 'HARD' ? 'var(--error)' : 'inherit',
         fontWeight: 600,
         fontSize: '13px'
       }}>{difficulty}</span>
     </td>
-    <td>{used}</td>
+    <td>{institution}</td>
     <td>
       <div style={{ display: 'flex', gap: '12px' }}>
         <Eye size={16} color="#6A7282" style={{ cursor: 'pointer' }} />
@@ -192,3 +349,6 @@ const CodeIcon = ({ color }: any) => (
 );
 
 export default QuestionManagement;
+
+
+

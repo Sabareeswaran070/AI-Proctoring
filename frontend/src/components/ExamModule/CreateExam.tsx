@@ -10,6 +10,7 @@ import {
   Save,
   Send
 } from 'lucide-react';
+import api from '../../api';
 import './ExamModule.css';
 
 interface CreateExamProps {
@@ -18,6 +19,45 @@ interface CreateExamProps {
 
 const CreateExam: React.FC<CreateExamProps> = ({ onBack }) => {
   const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    subject: '',
+    department: 'Computer Science',
+    institution: '',
+    semester: '',
+    startTime: '',
+    endTime: '',
+    duration: '',
+    totalMarks: '',
+    passingMarks: '40',
+    negativeMarking: false,
+    randomizeQuestions: false,
+    randomizeOptions: false,
+    faceDetection: true,
+    tabLock: true,
+    calculator: false,
+    autoSave: true
+  });
+
+  const handleChange = (e: any) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const response = await api.post('/super-admin/exams', formData);
+      alert('Exam published successfully!');
+      onBack();
+    } catch (err) {
+      console.error('Error publishing exam:', err);
+      alert('Failed to publish exam.');
+    }
+  };
 
   return (
     <div className="exam-module-container">
@@ -46,31 +86,62 @@ const CreateExam: React.FC<CreateExamProps> = ({ onBack }) => {
             <div className="form-grid">
               <div className="form-field" style={{ gridColumn: 'span 2' }}>
                 <label>Exam Title *</label>
-                <input type="text" placeholder="e.g. Mid-Term Software Engineering 2026" />
+                <input 
+                  type="text" 
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="e.g. Mid-Term Software Engineering 2026" 
+                />
               </div>
               <div className="form-field" style={{ gridColumn: 'span 2' }}>
                 <label>Description</label>
-                <textarea rows={3} placeholder="Briefly describe the scope of this examination..."></textarea>
+                <textarea 
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3} 
+                  placeholder="Briefly describe the scope of this examination..."
+                ></textarea>
               </div>
               <div className="form-field">
                 <label>Subject / Course</label>
-                <input type="text" placeholder="e.g. CS-402 Software Engineering" />
+                <input 
+                  type="text" 
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  placeholder="e.g. CS-402 Software Engineering" 
+                />
               </div>
               <div className="form-field">
                 <label>Department</label>
-                <select>
+                <select name="department" value={formData.department} onChange={handleChange}>
                   <option>Computer Science</option>
                   <option>Electrical Engineering</option>
                   <option>Mechanical Engineering</option>
+                  <option>Information Technology</option>
                 </select>
               </div>
               <div className="form-field">
                 <label>Institution</label>
-                <input type="text" placeholder="e.g. MIT University" />
+                <input 
+                  type="text" 
+                  name="institution"
+                  value={formData.institution}
+                  onChange={handleChange}
+                  placeholder="e.g. MIT University" 
+                />
               </div>
               <div className="form-field">
                 <label>Semester / Year</label>
-                <input type="text" placeholder="e.g. 6th Semester / 2026" />
+                <input 
+                  type="text" 
+                  name="semester"
+                  value={formData.semester}
+                  onChange={handleChange}
+                  placeholder="e.g. 6th Semester / 2026" 
+                />
               </div>
             </div>
           </div>
@@ -82,40 +153,68 @@ const CreateExam: React.FC<CreateExamProps> = ({ onBack }) => {
             <div className="form-grid">
               <div className="form-field">
                 <label>Start Time *</label>
-                <input type="datetime-local" />
+                <input 
+                  type="datetime-local" 
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={handleChange}
+                />
               </div>
               <div className="form-field">
                 <label>End Time *</label>
-                <input type="datetime-local" />
+                <input 
+                  type="datetime-local" 
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleChange}
+                />
               </div>
               <div className="form-field">
                 <label>Duration (Minutes) *</label>
-                <input type="number" placeholder="120" />
+                <input 
+                  type="number" 
+                  name="duration"
+                  value={formData.duration}
+                  onChange={handleChange}
+                  placeholder="120" 
+                />
               </div>
               <div className="form-field">
                 <label>Total Marks</label>
-                <input type="number" placeholder="100" />
+                <input 
+                  type="number" 
+                  name="totalMarks"
+                  value={formData.totalMarks}
+                  onChange={handleChange}
+                  placeholder="100" 
+                />
               </div>
               <div className="form-field">
                 <label>Passing Marks (%)</label>
-                <input type="number" placeholder="40" />
+                <input 
+                  type="number" 
+                  name="passingMarks"
+                  value={formData.passingMarks}
+                  onChange={handleChange}
+                  placeholder="40" 
+                />
               </div>
               <div className="form-field" style={{ gridColumn: 'span 2' }}>
                 <div className="toggle-group">
                   <span>Enable Negative Marking</span>
-                  <ToggleSwitch />
+                  <ToggleSwitch name="negativeMarking" checked={formData.negativeMarking} onChange={handleChange} />
                 </div>
               </div>
               <div className="form-field">
                 <div className="toggle-group">
                   <span>Randomize Questions</span>
-                  <ToggleSwitch />
+                  <ToggleSwitch name="randomizeQuestions" checked={formData.randomizeQuestions} onChange={handleChange} />
                 </div>
               </div>
               <div className="form-field">
                 <div className="toggle-group">
                   <span>Randomize Options</span>
-                  <ToggleSwitch />
+                  <ToggleSwitch name="randomizeOptions" checked={formData.randomizeOptions} onChange={handleChange} />
                 </div>
               </div>
             </div>
@@ -132,7 +231,7 @@ const CreateExam: React.FC<CreateExamProps> = ({ onBack }) => {
                     <span style={{ fontWeight: 600, display: 'block' }}>Face Detection & Identification</span>
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Continuous monitoring of student presence.</span>
                   </div>
-                  <ToggleSwitch defaultChecked />
+                  <ToggleSwitch name="faceDetection" checked={formData.faceDetection} onChange={handleChange} />
                 </div>
               </div>
               <div className="form-field" style={{ gridColumn: 'span 2' }}>
@@ -141,19 +240,19 @@ const CreateExam: React.FC<CreateExamProps> = ({ onBack }) => {
                     <span style={{ fontWeight: 600, display: 'block' }}>Tab Switch & Browser Lock</span>
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Restrict access to other tabs or applications.</span>
                   </div>
-                  <ToggleSwitch defaultChecked />
+                  <ToggleSwitch name="tabLock" checked={formData.tabLock} onChange={handleChange} />
                 </div>
               </div>
               <div className="form-field">
                 <div className="toggle-group">
                   <span>Scientific Calculator</span>
-                  <ToggleSwitch />
+                  <ToggleSwitch name="calculator" checked={formData.calculator} onChange={handleChange} />
                 </div>
               </div>
               <div className="form-field">
                 <div className="toggle-group">
                   <span>Auto-Save Progress</span>
-                  <ToggleSwitch defaultChecked />
+                  <ToggleSwitch name="autoSave" checked={formData.autoSave} onChange={handleChange} />
                 </div>
               </div>
             </div>
@@ -171,7 +270,7 @@ const CreateExam: React.FC<CreateExamProps> = ({ onBack }) => {
             Next Step
           </button>
         ) : (
-          <button className="page-btn active" style={{ backgroundColor: 'var(--accent-color)', color: 'white', borderColor: 'var(--accent-color)' }}>
+          <button className="page-btn active" style={{ backgroundColor: 'var(--accent-color)', color: 'white', borderColor: 'var(--accent-color)' }} onClick={handleSubmit}>
             <Send size={18} /> Publish Exam
           </button>
         )}
@@ -201,7 +300,7 @@ const StepItem = ({ num, title, active, done }: any) => (
   </div>
 );
 
-const ToggleSwitch = ({ defaultChecked }: any) => (
+const ToggleSwitch = ({ name, checked, onChange }: any) => (
   <label style={{ 
     position: 'relative', 
     display: 'inline-block', 
@@ -209,12 +308,12 @@ const ToggleSwitch = ({ defaultChecked }: any) => (
     height: 24,
     cursor: 'pointer'
   }}>
-    <input type="checkbox" defaultChecked={defaultChecked} style={{ opacity: 0, width: 0, height: 0 }} />
+    <input type="checkbox" name={name} checked={checked} onChange={onChange} style={{ opacity: 0, width: 0, height: 0 }} />
     <span style={{
       position: 'absolute',
       cursor: 'pointer',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: defaultChecked ? 'var(--accent-color)' : '#ccc',
+      backgroundColor: checked ? 'var(--accent-color)' : '#ccc',
       transition: '.4s',
       borderRadius: '34px'
     }}></span>
@@ -222,7 +321,7 @@ const ToggleSwitch = ({ defaultChecked }: any) => (
       position: 'absolute',
       content: '""',
       height: 18, width: 18,
-      left: defaultChecked ? 23 : 3,
+      left: checked ? 23 : 3,
       bottom: 3,
       backgroundColor: 'white',
       transition: '.4s',
@@ -232,3 +331,4 @@ const ToggleSwitch = ({ defaultChecked }: any) => (
 );
 
 export default CreateExam;
+

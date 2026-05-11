@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Shield, 
   Eye, 
@@ -12,9 +12,33 @@ import {
   MoreVertical,
   ExternalLink
 } from 'lucide-react';
+import api from '../../api';
 import './ExamModule.css';
 
 const AIProctoringSection: React.FC = () => {
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchProctoringData = async () => {
+      try {
+        const [alertsRes, statsRes] = await Promise.all([
+          api.get('/super-admin/proctoring/alerts'),
+          api.get('/super-admin/exams/stats') // Reusing stats endpoint for count
+        ]);
+        setAlerts(alertsRes.data);
+        setStats(statsRes.data);
+      } catch (err) {
+        console.error('Error fetching proctoring data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProctoringData();
+  }, []);
+
   return (
     <div className="exam-module-container">
       <div className="exam-header">
@@ -39,7 +63,7 @@ const AIProctoringSection: React.FC = () => {
          <div className="exam-stat-card">
             <div className="stat-info">
                <h3>High Risk Students</h3>
-               <div className="stat-value">08</div>
+               <div className="stat-value">{stats?.high_risk ?? "-"}</div>
                <p className="stat-change" style={{ color: 'var(--error)' }}>Action required</p>
             </div>
             <div className="stat-icon" style={{ backgroundColor: '#FEF2F2' }}>
@@ -48,9 +72,9 @@ const AIProctoringSection: React.FC = () => {
          </div>
          <div className="exam-stat-card">
             <div className="stat-info">
-               <h3>Tab Switch Alerts</h3>
-               <div className="stat-value">124</div>
-               <p className="stat-change" style={{ color: 'var(--warning)' }}>Last 24 hours</p>
+               <h3>Total Alerts</h3>
+               <div className="stat-value">{stats?.alerts ?? "-"}</div>
+               <p className="stat-change" style={{ color: 'var(--warning)' }}>All time alerts</p>
             </div>
             <div className="stat-icon" style={{ backgroundColor: '#FFFBEB' }}>
                <Copy color="var(--warning)" />
@@ -58,9 +82,9 @@ const AIProctoringSection: React.FC = () => {
          </div>
          <div className="exam-stat-card">
             <div className="stat-info">
-               <h3>Mobile Detection</h3>
-               <div className="stat-value">14</div>
-               <p className="stat-change">Object AI flagged</p>
+               <h3>Live Sessions</h3>
+               <div className="stat-value">{stats?.active ?? "-"}</div>
+               <p className="stat-change">Active monitoring</p>
             </div>
             <div className="stat-icon" style={{ backgroundColor: '#F0F9FF' }}>
                <Smartphone color="#0EA5E9" />
@@ -68,9 +92,9 @@ const AIProctoringSection: React.FC = () => {
          </div>
          <div className="exam-stat-card">
             <div className="stat-info">
-               <h3>Noise Violation</h3>
-               <div className="stat-value">32</div>
-               <p className="stat-change">Threshold exceeded</p>
+               <h3>System Integrity</h3>
+               <div className="stat-value">99.8%</div>
+               <p className="stat-change">Operational</p>
             </div>
             <div className="stat-icon" style={{ backgroundColor: '#F5F3FF' }}>
                <Volume2 color="#8B5CF6" />
@@ -86,15 +110,23 @@ const AIProctoringSection: React.FC = () => {
                <div style={{ display: 'flex', gap: '8px' }}>
                   <span className="status-badge status-live" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#008236', animation: 'pulse 1.5s infinite' }}></div>
-                     86 Active Sessions
+                     {stats?.active ?? 0} Active Sessions
                   </span>
                </div>
             </div>
             <div className="proctoring-grid">
-               <ProctorCard name="James Wilson" risk="92%" violation="Mobile Detected" time="02:14" severity="high" />
-               <ProctorCard name="Sarah Chen" risk="74%" violation="Multiple Persons" time="05:30" severity="high" />
-               <ProctorCard name="Michael Ross" risk="45%" violation="Tab Switched" time="12:05" severity="medium" />
-               <ProctorCard name="Emma Watson" risk="12%" violation="None" time="45:00" severity="low" />
+               {alerts.length > 0 ? alerts.slice(0, 4).map((alert) => (
+                 <ProctorCard 
+                    key={alert.id}
+                    name={alert.user?.name ?? "-"} 
+                    risk={alert.riskScore ?? "-"} 
+                    violation={alert.title ?? "-"} 
+                    time={new Date(alert.createdAt).toLocaleTimeString() ?? "-"} 
+                    severity={alert.type === 'CRITICAL' ? 'high' : 'medium'} 
+                 />
+               )) : (
+                 <div style={{ gridColumn: 'span 2', padding: '40px', textAlign: 'center', color: '#94A3B8' }}>No active proctoring alerts found.</div>
+               )}
             </div>
          </div>
 
@@ -105,27 +137,18 @@ const AIProctoringSection: React.FC = () => {
                <p className="card-subtitle">Real-time system events</p>
             </div>
             <div className="activity-list">
-               <TimelineItem 
-                  title="Mobile Detected" 
-                  user="James Wilson" 
-                  time="Just now" 
-                  desc="Object detection model flagged smartphone in frame." 
-                  type="error"
-               />
-               <TimelineItem 
-                  title="Face Not Found" 
-                  user="Robert Fox" 
-                  time="2 mins ago" 
-                  desc="User went out of camera frame for 15 seconds." 
-                  type="warning"
-               />
-               <TimelineItem 
-                  title="Noise Alert" 
-                  user="Alice Smith" 
-                  time="5 mins ago" 
-                  desc="Ambient noise exceeded 75dB threshold." 
-                  type="info"
-               />
+               {alerts.length > 0 ? alerts.map((alert) => (
+                 <TimelineItem 
+                    key={alert.id}
+                    title={alert.title ?? "-"} 
+                    user={alert.user?.name ?? "-"} 
+                    time={new Date(alert.createdAt).toLocaleTimeString() ?? "-"} 
+                    desc={alert.desc ?? "-"} 
+                    type={alert.type === 'CRITICAL' ? 'error' : 'warning'}
+                 />
+               )) : (
+                 <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8' }}>Timeline is empty.</div>
+               )}
             </div>
          </div>
       </div>
@@ -186,3 +209,4 @@ const TimelineItem = ({ title, user, time, desc, type }: any) => (
 );
 
 export default AIProctoringSection;
+

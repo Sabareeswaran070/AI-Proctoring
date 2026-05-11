@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   FileText, 
   Users, 
@@ -13,6 +13,7 @@ import {
   Calendar,
   Layers
 } from 'lucide-react';
+import api from '../../api';
 import './ExamModule.css';
 
 interface ExamDashboardProps {
@@ -20,7 +21,38 @@ interface ExamDashboardProps {
   onViewQuestions: () => void;
 }
 
+interface ExamStats {
+  total: number;
+  active: number;
+  upcoming: number;
+  completed: number;
+  alerts: number;
+}
+
 const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuestions }) => {
+  const [stats, setStats] = useState<ExamStats | null>(null);
+  const [exams, setExams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [statsRes, examsRes] = await Promise.all([
+          api.get('/super-admin/exams/stats'),
+          api.get('/super-admin/exams')
+        ]);
+        setStats(statsRes.data);
+        setExams(examsRes.data);
+      } catch (err) {
+        console.error('Error fetching exam dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
   return (
     <div className="exam-module-container">
       <div className="exam-header">
@@ -45,8 +77,10 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
         <div className="exam-stat-card">
           <div className="stat-info">
             <h3>Total Exams</h3>
-            <div className="stat-value">124</div>
-            <p className="stat-change" style={{ color: 'var(--success)' }}><ArrowUpRight size={12} /> 12% from last month</p>
+            <div className="stat-value">{stats?.total ?? "-"}</div>
+            <p className="stat-change" style={{ color: 'var(--success)' }}>
+              {stats?.total !== undefined ? <><ArrowUpRight size={12} /> Dashboard Live</> : "-"}
+            </p>
           </div>
           <div className="stat-icon" style={{ backgroundColor: '#F0F4FF' }}>
             <FileText color="var(--info)" />
@@ -55,8 +89,8 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
         <div className="exam-stat-card">
           <div className="stat-info">
             <h3>Active Exams</h3>
-            <div className="stat-value">12</div>
-            <p className="stat-change">Live Monitoring</p>
+            <div className="stat-value">{stats?.active ?? "-"}</div>
+            <p className="stat-change">{stats?.active !== undefined ? "Live Monitoring" : "-"}</p>
           </div>
           <div className="stat-icon" style={{ backgroundColor: '#ECFDF5' }}>
             <ActivityIcon />
@@ -65,8 +99,8 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
         <div className="exam-stat-card">
           <div className="stat-info">
             <h3>Upcoming Exams</h3>
-            <div className="stat-value">28</div>
-            <p className="stat-change">Next 7 days</p>
+            <div className="stat-value">{stats?.upcoming ?? "-"}</div>
+            <p className="stat-change">{stats?.upcoming !== undefined ? "Scheduled" : "-"}</p>
           </div>
           <div className="stat-icon" style={{ backgroundColor: '#FFF7ED' }}>
             <Calendar color="var(--accent-color)" />
@@ -75,8 +109,10 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
         <div className="exam-stat-card">
           <div className="stat-info">
             <h3>AI Proctoring Alerts</h3>
-            <div className="stat-value">42</div>
-            <p className="stat-change" style={{ color: 'var(--error)' }}><AlertTriangle size={12} /> Requires review</p>
+            <div className="stat-value">{stats?.alerts ?? "-"}</div>
+            <p className="stat-change" style={{ color: stats?.alerts && stats.alerts > 0 ? 'var(--error)' : 'inherit' }}>
+              {stats?.alerts !== undefined ? (stats.alerts > 0 ? <><AlertTriangle size={12} /> Requires review</> : "All clear") : "-"}
+            </p>
           </div>
           <div className="stat-icon" style={{ backgroundColor: '#FFF1F2' }}>
             <AlertTriangle color="var(--error)" />
@@ -98,7 +134,7 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
             </select>
           </div>
           <div className="chart-placeholder">
-             {/* Simple Bar Chart SVG */}
+             {/* Simple Bar Chart SVG - Keeping visual structure but acknowledging lack of real dynamic chart data yet */}
              <svg width="100%" height="240" viewBox="0 0 600 240">
                 {[40, 70, 55, 90, 65, 80, 45].map((h, i) => (
                   <rect key={i} x={40 + i * 80} y={240 - (h * 2)} width="40" height={h * 2} fill={i === 3 ? 'var(--accent-color)' : '#E5E7EB'} rx="4" />
@@ -117,24 +153,17 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
             <p className="card-subtitle">Latest actions and status changes</p>
           </div>
           <div className="activity-list">
-             <ActivityItem 
-                title="Final Term Physics" 
-                desc="Exam published for 120 students" 
-                time="10 mins ago" 
-                status="Published"
-             />
-             <ActivityItem 
-                title="Python Programming" 
-                desc="Draft updated by Dr. Sarah" 
-                time="1 hour ago" 
-                status="Draft"
-             />
-             <ActivityItem 
-                title="Database Systems" 
-                desc="Completed. Generating results..." 
-                time="3 hours ago" 
-                status="Completed"
-             />
+             {exams.length > 0 ? exams.slice(0, 3).map((exam) => (
+               <ActivityItem 
+                  key={exam.id}
+                  title={exam.title ?? "-"} 
+                  desc={`Exam for ${exam.department ?? "N/A"}`} 
+                  time={new Date(exam.createdAt).toLocaleDateString() ?? "-"} 
+                  status={exam.status ?? "Draft"}
+               />
+             )) : (
+               <div style={{ padding: '20px', textAlign: 'center', color: '#94A3B8' }}>No recent activity found.</div>
+             )}
           </div>
         </div>
       </div>
@@ -157,45 +186,28 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
               <th>Exam Name</th>
               <th>Department</th>
               <th>Date & Time</th>
-              <th>Students</th>
+              <th>Institution</th>
               <th>Type</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <ExamRow 
-              name="Data Structures & Algorithms" 
-              dept="Computer Science" 
-              date="May 12, 2026 | 10:00 AM" 
-              students="145" 
-              type="MCQ" 
-              status="Upcoming" 
-            />
-            <ExamRow 
-              name="Micro-Electronics Quiz" 
-              dept="Electrical Engineering" 
-              date="May 11, 2026 | 02:30 PM" 
-              students="82" 
-              type="MCQ" 
-              status="Live" 
-            />
-            <ExamRow 
-              name="Advanced Java Coding" 
-              dept="Information Technology" 
-              date="May 10, 2026 | 09:00 AM" 
-              students="210" 
-              type="Coding" 
-              status="Completed" 
-            />
-            <ExamRow 
-              name="Architecture History" 
-              dept="Architecture" 
-              date="Drafted" 
-              students="--" 
-              type="Descriptive" 
-              status="Draft" 
-            />
+            {exams.length > 0 ? exams.map((exam) => (
+              <ExamRow 
+                key={exam.id}
+                name={exam.title ?? "-"} 
+                dept={exam.department ?? "-"} 
+                date={exam.startTime ? new Date(exam.startTime).toLocaleString() : "-"} 
+                institution={exam.institution?.name ?? "-"} 
+                type={exam.type ?? "-"} 
+                status={exam.status ?? "-"} 
+              />
+            )) : (
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '40px' }}>No exams found in the database.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -221,8 +233,8 @@ const ActivityIcon = () => (
 
 const ActivityItem = ({ title, desc, time, status }: any) => (
   <div className="activity-item">
-    <div className="activity-icon" style={{ backgroundColor: status === 'Published' ? '#ECFDF5' : status === 'Draft' ? '#F3F4F6' : '#F0F4FF' }}>
-      <CheckCircle2 size={16} color={status === 'Published' ? 'var(--success)' : '#6A7282'} />
+    <div className="activity-icon" style={{ backgroundColor: status === 'ONGOING' || status === 'COMPLETED' ? '#ECFDF5' : status === 'DRAFT' ? '#F3F4F6' : '#F0F4FF' }}>
+      <CheckCircle2 size={16} color={status === 'COMPLETED' ? 'var(--success)' : '#6A7282'} />
     </div>
     <div className="activity-content" style={{ flex: 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -234,7 +246,7 @@ const ActivityItem = ({ title, desc, time, status }: any) => (
   </div>
 );
 
-const ExamRow = ({ name, dept, date, students, type, status }: any) => (
+const ExamRow = ({ name, dept, date, institution, type, status }: any) => (
   <tr>
     <td>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -246,12 +258,12 @@ const ExamRow = ({ name, dept, date, students, type, status }: any) => (
     </td>
     <td>{dept}</td>
     <td>{date}</td>
-    <td>{students}</td>
+    <td>{institution}</td>
     <td><span style={{ padding: '4px 8px', borderRadius: '6px', background: '#F3F4F6', fontSize: '12px' }}>{type}</span></td>
     <td>
-      <span className={`status-badge ${status === 'Live' ? 'status-live' : status === 'Upcoming' ? 'status-scheduled' : ''}`} style={{ 
-        backgroundColor: status === 'Completed' ? '#F3F4F6' : status === 'Draft' ? '#FFFBEB' : undefined,
-        color: status === 'Completed' ? '#6A7282' : status === 'Draft' ? '#D08700' : undefined
+      <span className={`status-badge ${status === 'ONGOING' ? 'status-live' : status === 'SCHEDULED' ? 'status-scheduled' : ''}`} style={{ 
+        backgroundColor: status === 'COMPLETED' ? '#F3F4F6' : status === 'DRAFT' ? '#FFFBEB' : undefined,
+        color: status === 'COMPLETED' ? '#6A7282' : status === 'DRAFT' ? '#D08700' : undefined
       }}>
         {status}
       </span>
@@ -261,3 +273,4 @@ const ExamRow = ({ name, dept, date, students, type, status }: any) => (
 );
 
 export default ExamDashboard;
+

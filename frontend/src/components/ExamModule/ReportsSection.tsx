@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   FileText, 
   Download, 
@@ -17,6 +17,14 @@ import {
 import './ExamModule.css';
 
 const ReportsSectionPage: React.FC = () => {
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulating fetching reports
+    setLoading(false);
+  }, []);
+
   return (
     <div className="exam-module-container">
       <div className="exam-header">
@@ -37,10 +45,10 @@ const ReportsSectionPage: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
-         <ReportTypeCard title="Attendance Report" count="124 Generated" icon={<CheckCircle2 />} color="#00A63E" />
-         <ReportTypeCard title="AI Violation Report" count="42 Flagged" icon={<AlertCircle />} color="#FB2C36" />
-         <ReportTypeCard title="Performance Report" count="86 Available" icon={<FileText />} color="#1447E6" />
-         <ReportTypeCard title="System Audit Logs" count="1.2k Logs" icon={<Clock />} color="#111" />
+         <ReportTypeCard title="Attendance Report" count="-" icon={<CheckCircle2 />} color="#00A63E" />
+         <ReportTypeCard title="AI Violation Report" count="-" icon={<AlertCircle />} color="#FB2C36" />
+         <ReportTypeCard title="Performance Report" count="-" icon={<FileText />} color="#1447E6" />
+         <ReportTypeCard title="System Audit Logs" count="-" icon={<Clock />} color="#111" />
       </div>
 
       <div className="content-grid" style={{ gridTemplateColumns: '1fr 400px' }}>
@@ -57,34 +65,18 @@ const ReportsSectionPage: React.FC = () => {
             </div>
             
             <div className="reports-list">
-               <ReportListItem 
-                  name="Spring Mid-Term 2026 - CS Dept" 
-                  type="Performance" 
-                  date="May 10, 2026" 
-                  size="2.4 MB" 
-                  format="PDF" 
-               />
-               <ReportListItem 
-                  name="AI Integrity Audit - Week 18" 
-                  type="Security" 
-                  date="May 09, 2026" 
-                  size="1.1 MB" 
-                  format="Excel" 
-               />
-               <ReportListItem 
-                  name="Institution Master Attendance" 
-                  type="Attendance" 
-                  date="May 08, 2026" 
-                  size="4.8 MB" 
-                  format="CSV" 
-               />
-               <ReportListItem 
-                  name="Faculty Evaluation Report" 
-                  type="Administrative" 
-                  date="May 05, 2026" 
-                  size="900 KB" 
-                  format="PDF" 
-               />
+               {reports.length > 0 ? reports.map((report, i) => (
+                 <ReportListItem 
+                    key={i}
+                    name={report.name ?? "-"} 
+                    type={report.type ?? "-"} 
+                    date={report.date ?? "-"} 
+                    size={report.size ?? "-"} 
+                    format={report.format ?? "PDF"} 
+                 />
+               )) : (
+                 <div style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>No reports have been generated yet.</div>
+               )}
             </div>
          </div>
 
@@ -112,8 +104,6 @@ const ReportsSectionPage: React.FC = () => {
                   <label>Institution / Department</label>
                   <select>
                      <option>All Entities</option>
-                     <option>MIT University</option>
-                     <option>Stanford Academy</option>
                   </select>
                </div>
                <div className="form-group">
@@ -200,11 +190,11 @@ const FormatOption = ({ label, active }: any) => (
     borderColor: active ? 'var(--accent-color)' : '#E2E8F0',
     background: active ? '#FFF7ED' : 'white',
     color: active ? 'var(--accent-color)' : '#64748B',
-    fontSize: '12px',
+    fontSize: '13px',
     fontWeight: 600,
     cursor: 'pointer'
   }}>
-     {label}
+    {label}
   </div>
 );
 
