@@ -63,6 +63,9 @@
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .exam-type-card:hover {
@@ -113,6 +116,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  margin-top: auto;
 }
 
 .exam-type-card:hover .create-btn-sm {
