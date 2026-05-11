@@ -11,6 +11,7 @@ import io
 import re
 import base64
 import json
+from core.ai_service import generate_question
 
 router = APIRouter(prefix="/api/super-admin", tags=["super-admin"])
 
@@ -865,6 +866,18 @@ async def create_question(question_data: dict, admin=Depends(RoleChecker(["SUPER
     except Exception as e:
         print(f"Error creating question: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/questions/generate")
+async def ai_generate_question(data: dict, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    prompt = data.get("prompt")
+    q_type = data.get("type", "MCQ")
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required")
+    
+    result = await generate_question(prompt, q_type)
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+    return result
 
 @router.get("/results/top-performers")
 async def get_top_performers(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):

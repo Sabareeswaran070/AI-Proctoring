@@ -17,7 +17,9 @@ import {
   CheckCircle2,
   Code,
   Layers,
-  FileText
+  FileText,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import api from '../../api';
 import './ExamModule.css';
@@ -43,6 +45,8 @@ const QuestionManagement: React.FC = () => {
     correctAnswer: '',
     options: ['', '', '', '']
   });
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [generating, setGenerating] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -74,6 +78,32 @@ const QuestionManagement: React.FC = () => {
     } catch (err) {
       console.error('Error adding question:', err);
       alert('Failed to add question.');
+    }
+  };
+
+  const handleAiGenerate = async () => {
+    if (!aiPrompt) return alert('Please enter a prompt for AI generation');
+    setGenerating(true);
+    try {
+      const response = await api.post('/super-admin/questions/generate', { 
+        prompt: aiPrompt,
+        type: newQuestion.type 
+      });
+      const data = response.data;
+      
+      setNewQuestion(prev => ({
+        ...prev,
+        content: data.content || prev.content,
+        explanation: data.explanation || prev.explanation,
+        correctAnswer: data.correctAnswer || prev.correctAnswer,
+        options: data.options || prev.options
+      }));
+      setAiPrompt('');
+    } catch (err) {
+      console.error('AI Generation Error:', err);
+      alert('Failed to generate question with AI. Please check your API configuration.');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -154,6 +184,39 @@ const QuestionManagement: React.FC = () => {
 
         <div className="card" style={{ padding: '32px' }}>
           <div className="profile-form" style={{ gap: '24px' }}>
+            {/* AI Generator Section */}
+            <div style={{ 
+              background: 'linear-gradient(135deg, #FFF9F0, #FFF)', 
+              padding: '20px', 
+              borderRadius: '12px', 
+              border: '1px solid #FFE4BC',
+              marginBottom: '8px'
+            }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#B45309' }}>
+                <Sparkles size={16} /> AI Question Architect
+              </h3>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <input 
+                  type="text" 
+                  placeholder="Describe what kind of question you want (e.g., Hard MCQ on Binary Search Trees)..."
+                  style={{ flex: 1, height: '42px' }}
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                />
+                <button 
+                  className="page-btn active" 
+                  style={{ backgroundColor: '#B45309', borderColor: '#B45309', color: 'white', height: '42px', minWidth: '140px' }}
+                  onClick={handleAiGenerate}
+                  disabled={generating}
+                >
+                  {generating ? <Loader2 size={18} className="animate-spin" /> : <><Sparkles size={16} /> Generate</>}
+                </button>
+              </div>
+              <p style={{ fontSize: '11px', color: '#92400E', marginTop: '8px', opacity: 0.8 }}>
+                * AI will automatically populate content, options, and correct answers based on your format.
+              </p>
+            </div>
+
             <div className="form-field">
               <label>Question Content *</label>
               <textarea 
