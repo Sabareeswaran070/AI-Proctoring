@@ -83,3 +83,38 @@ class FacultyUpdate(BaseModel):
     designation: Optional[str] = None
     specialization: Optional[str] = None
     status: Optional[str] = None
+
+class InstitutionCreate(BaseModel):
+    name: str
+    code: str
+    type: Optional[str] = None
+    affiliation: Optional[str] = None
+    accreditation: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    website: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    pincode: Optional[str] = None
+    plan: Optional[str] = "BASIC"
+    expiryDate: Optional[date] = None
+
+class InstitutionUpdate(BaseModel):
+    name: Optional[str] = None
+    code: Optional[str] = None
+    type: Optional[str] = None
+    affiliation: Optional[str] = None
+    accreditation: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    website: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
+    pincode: Optional[str] = None
+    status: Optional[str] = None
+    plan: Optional[str] = None
+    expiryDate: Optional[date] = None

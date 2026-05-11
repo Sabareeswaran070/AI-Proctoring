@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 from core.db import prisma
 from core.limiter import limiter
-from routers import auth, super_admin, dashboard
+from routers import auth, super_admin, dashboard, institutions
 
 load_dotenv()
 
@@ -60,6 +60,7 @@ async def shutdown():
 app.include_router(auth.router)
 app.include_router(super_admin.router)
 app.include_router(dashboard.router)
+app.include_router(institutions.router)
 
 if __name__ == "__main__":
     import uvicorn

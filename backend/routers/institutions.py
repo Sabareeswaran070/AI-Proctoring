@@ -1,0 +1,129 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from core.db import prisma
+from core.security import get_current_user
+from schemas import InstitutionCreate, InstitutionUpdate, BulkDeleteRequest
+from datetime import datetime
+
+router = APIRouter(prefix="/api/super-admin/institutions", tags=["Institutions"])
+
+@router.get("/")
+async def get_all_institutions(
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.role != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    where = {}
+    if status:
+        where["status"] = status
+    if search:
+        where["OR"] = [
+            {"name": {"contains": search, "mode": "insensitive"}},
+            {"code": {"contains": search, "mode": "insensitive"}},
+            {"city": {"contains": search, "mode": "insensitive"}}
+        ]
+    
+    institutions = await prisma.institution.find_many(
+        where=where,
+        include={
+            "_count": {
+                "select": {
+                    "users": True,
+                    "exams": True,
+                    "departments": True
+                }
+            }
+        },
+        order={"createdAt": "desc"}
+    )
+    return institutions
+
+@router.post("/")
+async def create_institution(
+    data: InstitutionCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.role != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        institution = await prisma.institution.create(
+            data={
+                **data.dict(),
+                "expiryDate": datetime.combine(data.expiryDate, datetime.min.time()) if data.expiryDate else None
+            }
+        )
+        return institution
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/{id}")
+async def get_institution_detail(
+    id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.role != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    institution = await prisma.institution.find_unique(
+        where={"id": id},
+        include={
+            "departments": True,
+            "_count": {
+                "select": {
+                    "users": True,
+                    "exams": True
+                }
+            }
+        }
+    )
+    if not institution:
+        raise HTTPException(status_code=404, detail="Institution not found")
+    return institution
+
+@router.put("/{id}")
+async def update_institution(
+    id: str,
+    data: InstitutionUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.role != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    if "expiryDate" in update_data and update_data["expiryDate"]:
+        update_data["expiryDate"] = datetime.combine(update_data["expiryDate"], datetime.min.time())
+        
+    try:
+        institution = await prisma.institution.update(
+            where={"id": id},
+            data=update_data
+        )
+        return institution
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/{id}")
+async def delete_institution(
+    id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.role != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await prisma.institution.delete(where={"id": id})
+    return {"message": "Institution deleted successfully"}
+
+@router.post("/bulk-delete")
+async def bulk_delete_institutions(
+    data: BulkDeleteRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    if current_user.role != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await prisma.institution.delete_many(where={"id": {"in": data.ids}})
+    return {"message": f"{len(data.ids)} institutions deleted"}

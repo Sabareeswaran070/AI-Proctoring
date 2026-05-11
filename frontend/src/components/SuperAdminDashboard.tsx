@@ -44,6 +44,12 @@ import CodingExamFeatures from './ExamModule/CodingAssessment';
 import StudentAssignmentModule from './ExamModule/StudentAssignment';
 import ResultsAnalytics from './ExamModule/ResultsAnalytics';
 import ReportsSectionPage from './ExamModule/ReportsSection';
+import CollegeDashboard from './CollegeModule/CollegeDashboard';
+import CollegeList from './CollegeModule/CollegeList';
+import CollegeProfile from './CollegeModule/CollegeProfile';
+import AddCollegeForm from './CollegeModule/AddCollegeForm';
+import DepartmentManagement from './CollegeModule/DepartmentManagement';
+import AnnouncementsModule from './CollegeModule/AnnouncementsModule';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
@@ -68,11 +74,12 @@ const SuperAdminDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'students' | 'profile' | 'student-detail' | 'faculty' | 'exams' | 'exam-types' | 'create-exam' | 'questions' | 'ai-proctoring-exam' | 'coding-exam' | 'assignments' | 'results' | 'reports'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'students' | 'profile' | 'student-detail' | 'faculty' | 'exams' | 'exam-types' | 'create-exam' | 'questions' | 'ai-proctoring-exam' | 'coding-exam' | 'assignments' | 'results' | 'reports' | 'colleges' | 'college-dashboard' | 'college-detail' | 'departments' | 'announcements' | 'college-add'>('dashboard');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [selectedExamType, setSelectedExamType] = useState<string | null>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const [selectedCollegeId, setSelectedCollegeId] = useState<string | null>(null);
   
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -114,6 +121,30 @@ const SuperAdminDashboard: React.FC = () => {
     fetchStats();
   }, []);
 
+  const renderInstitutionTabs = () => (
+    <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid var(--border-color)', marginBottom: '32px' }}>
+      <button
+        className={`page-btn ${currentView === 'college-dashboard' ? 'active' : ''}`}
+        onClick={() => setCurrentView('college-dashboard')}
+        style={{ borderBottom: currentView === 'college-dashboard' ? '2px solid var(--accent-color)' : 'none', borderRadius: 0 }}
+      >Overview</button>
+      <button
+        className={`page-btn ${currentView === 'colleges' ? 'active' : ''}`}
+        onClick={() => setCurrentView('colleges')}
+        style={{ borderBottom: currentView === 'colleges' ? '2px solid var(--accent-color)' : 'none', borderRadius: 0 }}
+      >Institutions</button>
+      <button
+        className={`page-btn ${currentView === 'departments' ? 'active' : ''}`}
+        onClick={() => setCurrentView('departments')}
+        style={{ borderBottom: currentView === 'departments' ? '2px solid var(--accent-color)' : 'none', borderRadius: 0 }}
+      >Departments</button>
+      <button
+        className={`page-btn ${currentView === 'announcements' ? 'active' : ''}`}
+        onClick={() => setCurrentView('announcements')}
+        style={{ borderBottom: currentView === 'announcements' ? '2px solid var(--accent-color)' : 'none', borderRadius: 0 }}
+      >Announcements</button>
+    </div>
+  );
 
   if (error) {
     return (
@@ -151,6 +182,13 @@ const SuperAdminDashboard: React.FC = () => {
           >
             <Users size={18} />
             <span>Students</span>
+          </div>
+          <div 
+            className={`nav-item ${currentView === 'college-dashboard' || currentView === 'colleges' || currentView === 'college-detail' || currentView === 'departments' || currentView === 'announcements' ? 'active' : ''}`}
+            onClick={() => setCurrentView('college-dashboard')}
+          >
+            <Building size={18} />
+            <span>Institution Suite</span>
           </div>
           <div 
             className={`nav-item ${currentView === 'faculty' ? 'active' : ''}`}
@@ -514,6 +552,43 @@ const SuperAdminDashboard: React.FC = () => {
             <ResultsAnalytics />
           ) : currentView === 'reports' ? (
             <ReportsSectionPage />
+          ) : currentView === 'college-dashboard' ? (
+            <div className="college-module-wrapper">
+               {renderInstitutionTabs()}
+               <CollegeDashboard />
+            </div>
+          ) : currentView === 'colleges' ? (
+            <div className="college-module-wrapper">
+               {renderInstitutionTabs()}
+               <CollegeList 
+                onAdd={() => setCurrentView('college-add')} 
+                onView={(id) => {
+                  setSelectedCollegeId(id);
+                  setCurrentView('college-detail');
+                }} 
+               />
+            </div>
+          ) : currentView === 'college-add' ? (
+            <div className="college-module-wrapper">
+               <AddCollegeForm 
+                 onBack={() => setCurrentView('colleges')} 
+                 onSuccess={() => setCurrentView('colleges')} 
+               />
+            </div>
+          ) : currentView === 'college-detail' ? (
+            <div className="college-module-wrapper">
+               <CollegeProfile id={selectedCollegeId!} onBack={() => setCurrentView('colleges')} />
+            </div>
+          ) : currentView === 'departments' ? (
+            <div className="college-module-wrapper">
+               {renderInstitutionTabs()}
+               <DepartmentManagement />
+            </div>
+          ) : currentView === 'announcements' ? (
+            <div className="college-module-wrapper">
+               {renderInstitutionTabs()}
+               <AnnouncementsModule />
+            </div>
           ) : (
             <ProfileSection user={user} data={data} />
           )}

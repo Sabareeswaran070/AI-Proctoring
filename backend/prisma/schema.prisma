@@ -41,7 +41,10 @@ model User {
   // Academic Info
   institutionId String?
   institution   Institution? @relation(fields: [institutionId], references: [id])
-  department    String?
+  departmentId  String?
+  dept          Department?  @relation("UserDept", fields: [departmentId], references: [id])
+  hodOf         Department[] @relation("DeptHOD")
+  department    String?      // Keep for backward compatibility or direct access
   course        String?
   semester      String?
   batch         String?
@@ -61,13 +64,71 @@ model User {
 }
 
 model Institution {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  code      String   @unique
-  users     User[]
-  exams     Exam[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String       @id @default(uuid())
+  name                  String       @unique
+  code                  String       @unique
+  type                  String?      // e.g. Engineering, Medical, Arts
+  affiliation           String?      // University Affiliation
+  accreditation         String?      // e.g. NAAC A+, ABET
+  email                 String?      @unique
+  phone                 String?
+  website               String?
+  address               String?
+  city                  String?
+  state                 String?
+  country               String?
+  pincode               String?
+  logo                  String?
+  banner                String?
+  status                InstitutionStatus @default(ACTIVE)
+  
+  // Subscription Info
+  plan                  String?      @default("BASIC")
+  expiryDate            DateTime?
+  
+  // Relations
+  users                 User[]
+  exams                 Exam[]
+  departments           Department[]
+  announcements         Announcement[]
+  
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+}
+
+model Department {
+  id              String      @id @default(uuid())
+  name            String
+  code            String?
+  institutionId   String
+  institution     Institution @relation(fields: [institutionId], references: [id])
+  hodId           String?
+  hod             User?       @relation("DeptHOD", fields: [hodId], references: [id])
+  studentsCount   Int         @default(0)
+  facultyCount    Int         @default(0)
+  
+  users           User[]      @relation("UserDept")
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([name, institutionId])
+}
+
+enum InstitutionStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Announcement {
+  id              String      @id @default(uuid())
+  title           String
+  content         String
+  institutionId   String?
+  institution     Institution? @relation(fields: [institutionId], references: [id])
+  role            Role?       // Target audience
+  createdAt       DateTime    @default(now())
 }
 
 model Exam {

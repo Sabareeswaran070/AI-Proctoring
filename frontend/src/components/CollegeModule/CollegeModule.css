@@ -1,0 +1,163 @@
+:root {
+  --college-accent: var(--accent-color);
+  --college-bg: var(--bg-main);
+  --college-card: var(--card-bg);
+  --college-border: var(--border-color);
+  --college-text: var(--text-primary);
+  --college-text-secondary: var(--text-secondary);
+}
+
+.college-module-wrapper {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.college-module {
+  padding: 0;
+  background-color: transparent;
+  color: var(--college-text);
+}
+
+.ey-card {
+  background: var(--college-card);
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid var(--college-border);
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.ey-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.05);
+  border-color: var(--college-accent);
+}
+
+.ey-title {
+  font-weight: 700;
+  font-size: 24px;
+  margin-bottom: 8px;
+  color: var(--college-text);
+}
+
+.ey-subtitle {
+  color: var(--college-text-secondary);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.ey-btn-primary {
+  background-color: var(--college-accent);
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.ey-btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.ey-btn-outline {
+  background: white;
+  color: var(--college-text);
+  padding: 10px 20px;
+  border: 1px solid var(--college-border);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ey-btn-outline:hover {
+  border-color: var(--college-accent);
+  color: var(--college-accent);
+  background: var(--bg-light);
+}
+
+.ey-badge {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ey-badge.active { background: #E0F2FE; color: #0284C7; }
+.ey-badge.inactive { background: #F3F4F6; color: #64748B; }
+.ey-badge.suspended { background: #FEE2E2; color: #EF4444; }
+
+.ey-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ey-table th {
+  text-align: left;
+  padding: 16px;
+  font-size: 13px;
+  color: var(--college-text-secondary);
+  font-weight: 600;
+  border-bottom: 2px solid var(--college-border);
+}
+
+.ey-table td {
+  padding: 16px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--college-border);
+  background: white;
+}
+
+.ey-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--college-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: #F8FAFC;
+  transition: all 0.2s;
+}
+
+.ey-input:focus {
+  border-color: var(--college-accent);
+  background: white;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.1);
+}
+
+.ey-stat-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ey-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--college-text);
+}
+
+.ey-stat-label {
+  font-size: 13px;
+  color: var(--college-text-secondary);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.ey-stat-icon {
+  width: 48px;
+  height: 48px;
+  background: #FFFBEB;
+  color: var(--college-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
