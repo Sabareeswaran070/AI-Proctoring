@@ -91,6 +91,23 @@ class StudentCreate(BaseModel):
     batch: Optional[str] = None
     browserLock: Optional[bool] = True
 
+class StudentUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    studentId: Optional[str] = None
+    phone: Optional[str] = None
+    gender: Optional[str] = None
+    dob: Optional[date] = None
+    institutionId: Optional[str] = None
+    department: Optional[str] = None
+    course: Optional[str] = None
+    semester: Optional[str] = None
+    batch: Optional[str] = None
+    status: Optional[str] = None
+
+class AdminPasswordReset(BaseModel):
+    newPassword: str
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -381,6 +398,65 @@ async def bulk_delete_students(request: BulkDeleteRequest, admin=Depends(RoleChe
     except Exception as e:
         print(f"Error bulk deleting students: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete students")
+
+@app.put("/api/super-admin/students/{id}")
+async def update_student(id: str, student_data: StudentUpdate, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        update_dict = {k: v for k, v in student_data.dict().items() if v is not None}
+        if ("dob" in update_dict and update_dict["dob"]):
+            if isinstance(update_dict["dob"], str):
+                from datetime import date as d_date
+                update_dict["dob"] = d_date.fromisoformat(update_dict["dob"])
+            update_dict["dob"] = datetime.combine(update_dict["dob"], datetime.min.time())
+            
+        updated = await prisma.user.update(
+            where={"id": id},
+            data=update_dict,
+            include={"institution": True}
+        )
+        return updated
+    except Exception as e:
+        print(f"Error updating student: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update student")
+
+@app.delete("/api/super-admin/students/{id}")
+async def delete_student(id: str, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        await prisma.user.delete(where={"id": id})
+        return {"message": "Student deleted successfully"}
+    except Exception as e:
+        print(f"Error deleting student: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete student")
+
+@app.put("/api/super-admin/students/{id}/status")
+async def update_student_status(id: str, status_data: dict, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        new_status = status_data.get("status")
+        if new_status not in ["ACTIVE", "BLOCKED", "SUSPENDED"]:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        updated = await prisma.user.update(
+            where={"id": id},
+            data={"status": new_status}
+        )
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update status")
+
+@app.post("/api/super-admin/students/{id}/reset-password")
+async def reset_student_password(id: str, data: AdminPasswordReset, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        hashed_password = get_password_hash(data.newPassword)
+        await prisma.user.update(
+            where={"id": id},
+            data={"password": hashed_password}
+        )
+        return {"message": "Password reset successfully"}
+    except Exception as e:
+        print(f"Error resetting password: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reset password")
 
 @app.get("/api/admin/dashboard")
 async def admin_dashboard(admin=Depends(RoleChecker(["SUPER_ADMIN", "COLLEGE_ADMIN"]))):

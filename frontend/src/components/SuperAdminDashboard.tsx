@@ -1,3 +1,4 @@
+// SuperAdminDashboard.tsx - v1.0.1
 import React, { useEffect, useState } from 'react';
 import { 
   LayoutDashboard, 
@@ -59,7 +60,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<'dashboard' | 'students' | 'profile' | 'student-detail'>('dashboard');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   
   const { user, logout } = useAuthStore();
@@ -73,7 +74,7 @@ const SuperAdminDashboard: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
-        setShowProfileMenu(false);
+        setIsProfileMenuOpen(false);
       }
     };
 
@@ -211,7 +212,7 @@ const SuperAdminDashboard: React.FC = () => {
             
             <div 
               className="profile-section" 
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
               ref={profileRef}
             >
               <div className="profile-info">
@@ -222,9 +223,9 @@ const SuperAdminDashboard: React.FC = () => {
                 <User size={20} />
               </div>
 
-              {showProfileMenu && (
+              {isProfileMenuOpen && (
                 <div className="profile-dropdown" onClick={(e) => e.stopPropagation()}>
-                  <div className="dropdown-item" onClick={() => { setCurrentView('profile'); setShowProfileMenu(false); }}>
+                  <div className="dropdown-item" onClick={() => { setCurrentView('profile'); setIsProfileMenuOpen(false); }}>
                     <User size={16} />
                     <span>My Profile</span>
                   </div>

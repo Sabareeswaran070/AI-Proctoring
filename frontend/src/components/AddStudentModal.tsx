@@ -342,7 +342,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
 
           .form-group label {
             display: block;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-secondary);
             margin-bottom: 8px;
@@ -353,7 +353,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
             padding: 10px 14px;
             border: 1px solid var(--border-color);
             border-radius: 10px;
-            font-size: 15px;
+            font-size: 14px;
             transition: all 0.2s;
             box-sizing: border-box;
           }
