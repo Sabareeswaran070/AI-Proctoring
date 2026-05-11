@@ -57,3 +57,29 @@ class PasswordChange(BaseModel):
 
 class BulkDeleteRequest(BaseModel):
     ids: List[str]
+
+class FacultyCreate(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    facultyId: str
+    phone: Optional[str] = None
+    gender: Optional[str] = None
+    dob: Optional[date] = None
+    institutionId: str
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    specialization: Optional[str] = None
+
+class FacultyUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    facultyId: Optional[str] = None
+    phone: Optional[str] = None
+    gender: Optional[str] = None
+    dob: Optional[date] = None
+    institutionId: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    specialization: Optional[str] = None
+    status: Optional[str] = None

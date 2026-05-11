@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List
 from core.db import prisma
 from core.security import RoleChecker, get_password_hash
-from schemas import StudentCreate, StudentUpdate, AdminPasswordReset, BulkDeleteRequest
+from schemas import StudentCreate, StudentUpdate, AdminPasswordReset, BulkDeleteRequest, FacultyCreate, FacultyUpdate
 from fastapi import UploadFile, File, Response
 from fastapi.responses import JSONResponse
 import pandas as pd
@@ -406,3 +406,327 @@ async def reset_student_password(id: str, data: AdminPasswordReset, admin=Depend
     except Exception as e:
         print(f"Error resetting password: {e}")
         raise HTTPException(status_code=500, detail="Failed to reset password")
+
+# ─────────────────────────────────────────────────────────────
+#  FACULTY ENDPOINTS
+# ─────────────────────────────────────────────────────────────
+
+@router.get("/faculty")
+async def get_all_faculty(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        faculty = await prisma.user.find_many(
+            where={"role": "FACULTY"},
+            include={"institution": True},
+            order={"createdAt": "desc"}
+        )
+        return faculty
+    except Exception as e:
+        print(f"Error fetching faculty: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch faculty")
+
+@router.get("/faculty/{id}")
+async def get_faculty_detail(id: str, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        faculty = await prisma.user.find_unique(
+            where={"id": id},
+            include={"institution": True}
+        )
+        if not faculty or faculty.role != "FACULTY":
+            raise HTTPException(status_code=404, detail="Faculty not found")
+        return faculty
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching faculty detail: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch faculty detail")
+
+@router.post("/faculty")
+async def create_faculty(faculty: FacultyCreate, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        existing = await prisma.user.find_first(
+            where={
+                "OR": [
+                    {"email": faculty.email},
+                    {"studentId": faculty.facultyId}
+                ]
+            }
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="Faculty with this email or ID already exists")
+
+        hashed_password = get_password_hash(faculty.password)
+
+        faculty_data = {
+            "name": faculty.name,
+            "email": faculty.email,
+            "password": hashed_password,
+            "studentId": faculty.facultyId,   # reuse unique studentId field
+            "role": "FACULTY",
+            "institutionId": faculty.institutionId,
+        }
+
+        optional_fields = {
+            "phone": faculty.phone,
+            "gender": faculty.gender,
+            "department": faculty.department,
+            "course": faculty.designation,       # designation → course
+            "semester": faculty.specialization,  # specialization → semester
+        }
+        for k, v in optional_fields.items():
+            if v is not None:
+                faculty_data[k] = v
+
+        if faculty.dob:
+            try:
+                from datetime import datetime as dt
+                from datetime import date as d_date
+                val = faculty.dob
+                if isinstance(val, str):
+                    val = d_date.fromisoformat(val)
+                faculty_data["dob"] = dt.combine(val, dt.min.time())
+            except Exception as e:
+                print(f"Error converting dob: {e}")
+
+        new_faculty = await prisma.user.create(
+            data=faculty_data,
+            include={"institution": True}
+        )
+        return new_faculty
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error creating faculty: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/faculty/{id}")
+async def update_faculty(id: str, faculty: FacultyUpdate, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        update_dict = {}
+        field_map = {
+            "name": "name", "email": "email", "phone": "phone",
+            "gender": "gender", "institutionId": "institutionId",
+            "department": "department",
+            "designation": "course",       # designation → course
+            "specialization": "semester",  # specialization → semester
+            "status": "status",
+        }
+        for schema_field, db_field in field_map.items():
+            val = getattr(faculty, schema_field, None)
+            if val is not None:
+                update_dict[db_field] = val
+
+        if faculty.facultyId:
+            update_dict["studentId"] = faculty.facultyId
+
+        if faculty.dob:
+            try:
+                from datetime import datetime as dt
+                from datetime import date as d_date
+                val = faculty.dob
+                if isinstance(val, str):
+                    val = d_date.fromisoformat(val)
+                update_dict["dob"] = dt.combine(val, dt.min.time())
+            except Exception as e:
+                print(f"Error converting dob: {e}")
+
+        updated = await prisma.user.update(
+            where={"id": id},
+            data=update_dict,
+            include={"institution": True}
+        )
+        return updated
+    except Exception as e:
+        print(f"Error updating faculty: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update faculty")
+
+@router.delete("/faculty/{id}")
+async def delete_faculty(id: str, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        await prisma.user.delete(where={"id": id})
+        return {"message": "Faculty deleted successfully"}
+    except Exception as e:
+        print(f"Error deleting faculty: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete faculty")
+
+@router.delete("/faculty/bulk")
+async def bulk_delete_faculty(request: BulkDeleteRequest, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        await prisma.user.delete_many(where={"id": {"in": request.ids}})
+        return {"message": f"Deleted {len(request.ids)} faculty members"}
+    except Exception as e:
+        print(f"Error bulk deleting faculty: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete faculty")
+
+@router.put("/faculty/{id}/status")
+async def update_faculty_status(id: str, status_data: dict, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        new_status = status_data.get("status")
+        if new_status not in ["ACTIVE", "BLOCKED", "SUSPENDED"]:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        updated = await prisma.user.update(
+            where={"id": id},
+            data={"status": new_status}
+        )
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating faculty status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update status")
+
+@router.post("/faculty/{id}/reset-password")
+async def reset_faculty_password(id: str, data: AdminPasswordReset, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        hashed_password = get_password_hash(data.newPassword)
+        await prisma.user.update(
+            where={"id": id},
+            data={"password": hashed_password}
+        )
+        return {"message": "Password reset successfully"}
+    except Exception as e:
+        print(f"Error resetting faculty password: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reset password")
+
+@router.get("/faculty/bulk-import/sample")
+async def download_faculty_sample(admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    institution = await prisma.institution.find_first()
+    sample_inst_id = institution.code if institution else "CEG"
+
+    df = pd.DataFrame(columns=[
+        "name", "email", "password", "facultyId", "phone",
+        "gender", "dob", "institutionId", "department",
+        "designation", "specialization"
+    ])
+    df.loc[0] = [
+        "Dr. Jane Smith", "jane.smith@example.com", "Password123!", "FAC001",
+        "9876543210", "Female", "1985-06-15", sample_inst_id,
+        "Computer Science", "Associate Professor", "Machine Learning"
+    ]
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Sample")
+
+    output.seek(0)
+    return Response(
+        content=output.read(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=sample_faculty.xlsx"}
+    )
+
+@router.post("/faculty/bulk-import")
+async def bulk_import_faculty(file: UploadFile = File(...), admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        if not file.filename.endswith((".xlsx", ".xls", ".csv")):
+            raise HTTPException(status_code=400, detail="Invalid file format. Please upload an Excel or CSV file.")
+
+        try:
+            content = await file.read()
+            df = pd.read_csv(io.BytesIO(content)) if file.filename.endswith(".csv") else pd.read_excel(io.BytesIO(content))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to read file: {str(e)}")
+
+        required_columns = ["name", "email", "password", "facultyId", "institutionId"]
+        missing_cols = [c for c in required_columns if c not in df.columns]
+        if missing_cols:
+            raise HTTPException(status_code=400, detail=f"Missing required columns: {', '.join(missing_cols)}")
+
+        errors, error_rows = [], []
+
+        existing_users = await prisma.user.find_many(where={"role": "FACULTY"})
+        existing_emails = {u.email for u in existing_users if u.email}
+        existing_ids   = {u.studentId for u in existing_users if u.studentId}
+
+        existing_institutions = await prisma.institution.find_many()
+        valid_institution_ids   = {inst.id for inst in existing_institutions}
+        institution_code_to_id  = {inst.code.upper(): inst.id for inst in existing_institutions if inst.code}
+
+        emails_in_file, ids_in_file = set(), set()
+        valid_faculty = []
+
+        for _, row in df.iterrows():
+            row_errors = []
+
+            def get(col):
+                val = row.get(col)
+                return str(val).strip() if pd.notna(val) else ""
+
+            name = get("name")
+            email = get("email")
+            password = get("password")
+            facultyId = get("facultyId")
+            institutionId = get("institutionId")
+            phone = get("phone")
+            if phone == "nan":
+                phone = ""
+
+            resolved_inst = institutionId
+            if not name:     row_errors.append("Name is required")
+            if not email:    row_errors.append("Email is required")
+            if not password: row_errors.append("Password is required")
+            if not facultyId: row_errors.append("Faculty ID is required")
+            if not institutionId:
+                row_errors.append("Institution ID is required")
+            else:
+                if institutionId in valid_institution_ids:
+                    resolved_inst = institutionId
+                elif institutionId.upper() in institution_code_to_id:
+                    resolved_inst = institution_code_to_id[institutionId.upper()]
+                else:
+                    row_errors.append(f"Institution ID/Code '{institutionId}' is invalid or does not exist")
+
+            if email and not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+                row_errors.append("Invalid email format")
+            if phone and len(phone) < 10:
+                row_errors.append("Phone must be at least 10 digits")
+
+            if email in existing_emails or email in emails_in_file:
+                row_errors.append(f"Email {email} already exists")
+            elif email:
+                emails_in_file.add(email)
+
+            if facultyId in existing_ids or facultyId in ids_in_file:
+                row_errors.append(f"Faculty ID {facultyId} already exists")
+            elif facultyId:
+                ids_in_file.add(facultyId)
+
+            if row_errors:
+                er = row.copy(); er["Error Details"] = "; ".join(row_errors)
+                error_rows.append(er); errors.extend(row_errors)
+            else:
+                valid_faculty.append({
+                    "name": name, "email": email,
+                    "password": get_password_hash(password),
+                    "studentId": facultyId, "role": "FACULTY",
+                    "institutionId": resolved_inst,
+                    "phone": phone or None,
+                    "gender": get("gender") or None,
+                    "department": get("department") or None,
+                    "course": get("designation") or None,
+                    "semester": get("specialization") or None,
+                })
+
+        if error_rows:
+            error_df = pd.DataFrame(error_rows)
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                error_df.to_excel(writer, index=False, sheet_name="Errors")
+            error_b64 = base64.b64encode(output.getvalue()).decode("utf-8")
+            return JSONResponse(
+                status_code=400,
+                content={"message": "Validation failed for some records",
+                         "errors": list(set(errors)), "error_file": error_b64}
+            )
+
+        try:
+            for f_data in valid_faculty:
+                await prisma.user.create(data=f_data)
+            return {"message": f"Successfully imported {len(valid_faculty)} faculty members"}
+        except Exception as e:
+            raise Exception(f"Database insertion failed: {str(e)}")
+
+    except Exception as general_error:
+        import traceback; traceback.print_exc()
+        if isinstance(general_error, HTTPException):
+            raise general_error
+        raise HTTPException(status_code=400, detail=f"Unexpected error: {str(general_error)}")

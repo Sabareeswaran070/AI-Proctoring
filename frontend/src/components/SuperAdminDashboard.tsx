@@ -34,6 +34,16 @@ import './SuperAdminDashboard.css';
 import logo from '../assets/logo-icon.svg';
 import StudentsList from './StudentsList';
 import StudentProfile from './StudentProfile';
+import FacultyList from './FacultyList';
+import ExamDashboard from './ExamModule/ExamDashboard';
+import ExamTypes from './ExamModule/ExamTypes';
+import CreateExam from './ExamModule/CreateExam';
+import QuestionManagement from './ExamModule/QuestionManagement';
+import AIProctoringSection from './ExamModule/AIProctoring';
+import CodingExamFeatures from './ExamModule/CodingAssessment';
+import StudentAssignmentModule from './ExamModule/StudentAssignment';
+import ResultsAnalytics from './ExamModule/ResultsAnalytics';
+import ReportsSectionPage from './ExamModule/ReportsSection';
 import { useAuthStore } from '../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
@@ -58,7 +68,7 @@ const SuperAdminDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'students' | 'profile' | 'student-detail'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'students' | 'profile' | 'student-detail' | 'faculty' | 'exams' | 'exam-types' | 'create-exam' | 'questions' | 'ai-proctoring-exam' | 'coding-exam' | 'assignments' | 'results' | 'reports'>('dashboard');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -141,31 +151,59 @@ const SuperAdminDashboard: React.FC = () => {
             <Users size={18} />
             <span>Students</span>
           </div>
-          <div className="nav-item">
+          <div 
+            className={`nav-item ${currentView === 'faculty' ? 'active' : ''}`}
+            onClick={() => setCurrentView('faculty')}
+          >
             <User size={18} />
             <span>Faculty</span>
           </div>
-          <div className="nav-item">
+          <div 
+            className={`nav-item ${currentView === 'exams' || currentView === 'exam-types' || currentView === 'create-exam' ? 'active' : ''}`}
+            onClick={() => setCurrentView('exams')}
+          >
             <FileText size={18} />
             <span>Exams</span>
           </div>
-          <div className="nav-item">
+          <div 
+            className={`nav-item ${currentView === 'questions' ? 'active' : ''}`}
+            onClick={() => setCurrentView('questions')}
+          >
             <Shield size={18} />
             <span>Question Bank</span>
           </div>
-          <div className="nav-item">
+          <div 
+            className={`nav-item ${currentView === 'ai-proctoring-exam' ? 'active' : ''}`}
+            onClick={() => setCurrentView('ai-proctoring-exam')}
+          >
             <Eye size={18} />
             <span>AI Proctoring</span>
           </div>
-          <div className="nav-item">
-            <Activity size={18} />
-            <span>Live Monitoring</span>
+          <div 
+            className={`nav-item ${currentView === 'coding-exam' ? 'active' : ''}`}
+            onClick={() => setCurrentView('coding-exam')}
+          >
+            <Monitor size={18} />
+            <span>Coding Exam</span>
           </div>
-          <div className="nav-item">
+          <div 
+            className={`nav-item ${currentView === 'assignments' ? 'active' : ''}`}
+            onClick={() => setCurrentView('assignments')}
+          >
+            <Users size={18} />
+            <span>Assignments</span>
+          </div>
+          <div 
+            className={`nav-item ${currentView === 'results' ? 'active' : ''}`}
+            onClick={() => setCurrentView('results')}
+          >
             <TrendingUp size={18} />
             <span>Results</span>
           </div>
-          <div className="nav-item">
+          <div 
+            className={`nav-item ${currentView === 'reports' ? 'active' : ''}`}
+            onClick={() => setCurrentView('reports')}
+          >
             <Globe size={18} />
             <span>Reports & Analytics</span>
           </div>
@@ -174,7 +212,7 @@ const SuperAdminDashboard: React.FC = () => {
             <span>Notifications</span>
           </div>
           <div className="nav-item">
-            <Shield size={18} />
+            <Lock size={18} />
             <span>Security</span>
           </div>
           <div className="nav-item">
@@ -443,6 +481,32 @@ const SuperAdminDashboard: React.FC = () => {
               studentId={selectedStudentId} 
               onBack={() => setCurrentView('students')} 
             />
+          ) : currentView === 'faculty' ? (
+            <FacultyList />
+          ) : currentView === 'exams' ? (
+            <ExamDashboard 
+              onCreateExam={() => setCurrentView('exam-types')} 
+              onViewQuestions={() => setCurrentView('questions')}
+            />
+          ) : currentView === 'exam-types' ? (
+            <ExamTypes 
+              onBack={() => setCurrentView('exams')} 
+              onCreateType={(type) => setCurrentView('create-exam')} 
+            />
+          ) : currentView === 'create-exam' ? (
+            <CreateExam onBack={() => setCurrentView('exam-types')} />
+          ) : currentView === 'questions' ? (
+            <QuestionManagement />
+          ) : currentView === 'ai-proctoring-exam' ? (
+            <AIProctoringSection />
+          ) : currentView === 'coding-exam' ? (
+            <CodingExamFeatures />
+          ) : currentView === 'assignments' ? (
+            <StudentAssignmentModule />
+          ) : currentView === 'results' ? (
+            <ResultsAnalytics />
+          ) : currentView === 'reports' ? (
+            <ReportsSectionPage />
           ) : (
             <ProfileSection user={user} data={data} />
           )}
