@@ -128,10 +128,12 @@ const ExamDashboard: React.FC<ExamDashboardProps> = ({ onCreateExam, onViewQuest
               <h2 className="card-title">Exam Performance Analytics</h2>
               <p className="card-subtitle">Pass rates and average scores across departments</p>
             </div>
-            <select className="page-btn" style={{ fontSize: '12px' }}>
-              <option>Last 30 Days</option>
-              <option>Last 6 Months</option>
-            </select>
+            <div className="select-wrapper">
+              <select className="filter-select">
+                <option>Last 30 Days</option>
+                <option>Last 6 Months</option>
+              </select>
+            </div>
           </div>
           <div className="chart-placeholder">
              {/* Simple Bar Chart SVG - Keeping visual structure but acknowledging lack of real dynamic chart data yet */}

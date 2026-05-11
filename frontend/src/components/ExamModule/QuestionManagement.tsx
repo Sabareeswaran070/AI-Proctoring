@@ -96,7 +96,7 @@ const QuestionManagement: React.FC = () => {
 
         <div className="card" style={{ padding: '32px' }}>
           <div className="profile-form" style={{ gap: '24px' }}>
-            <div className="form-group">
+            <div className="form-field">
               <label>Question Content *</label>
               <textarea 
                 rows={4} 
@@ -108,7 +108,7 @@ const QuestionManagement: React.FC = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-              <div className="form-group">
+              <div className="form-field">
                 <label>Category</label>
                 <select value={newQuestion.category} onChange={(e) => setNewQuestion({...newQuestion, category: e.target.value})}>
                   <option>Algorithms</option>
@@ -118,7 +118,7 @@ const QuestionManagement: React.FC = () => {
                   <option>Artificial Intelligence</option>
                 </select>
               </div>
-              <div className="form-group">
+              <div className="form-field">
                 <label>Question Type</label>
                 <select value={newQuestion.type} onChange={(e) => setNewQuestion({...newQuestion, type: e.target.value})}>
                   <option value="MCQ">Multiple Choice (MCQ)</option>
@@ -127,7 +127,7 @@ const QuestionManagement: React.FC = () => {
                   <option value="DESCRIPTIVE">Descriptive</option>
                 </select>
               </div>
-              <div className="form-group">
+              <div className="form-field">
                 <label>Difficulty Level</label>
                 <select value={newQuestion.difficulty} onChange={(e) => setNewQuestion({...newQuestion, difficulty: e.target.value})}>
                   <option value="EASY">Easy</option>
@@ -142,7 +142,7 @@ const QuestionManagement: React.FC = () => {
                 <h3 className="section-title" style={{ fontSize: '14px', marginBottom: '16px' }}>Options & Correct Answer</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                    {newQuestion.options.map((opt, i) => (
-                     <div key={i} className="form-group">
+                     <div key={i} className="form-field">
                         <label>Option {String.fromCharCode(65 + i)}</label>
                         <input 
                           type="text" 
@@ -157,7 +157,7 @@ const QuestionManagement: React.FC = () => {
                      </div>
                    ))}
                 </div>
-                <div className="form-group" style={{ marginTop: '16px' }}>
+                <div className="form-field" style={{ marginTop: '16px' }}>
                   <label>Correct Answer Index (0-3)</label>
                   <select value={newQuestion.correctAnswer} onChange={(e) => setNewQuestion({...newQuestion, correctAnswer: e.target.value})}>
                     <option value="0">Option A</option>
@@ -169,7 +169,7 @@ const QuestionManagement: React.FC = () => {
               </div>
             )}
 
-            <div className="form-group">
+            <div className="form-field">
               <label>Explanation (Optional)</label>
               <textarea 
                 rows={2} 
@@ -242,18 +242,22 @@ const QuestionManagement: React.FC = () => {
       <div className="table-container">
         <div className="table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '12px' }}>
-             <select className="page-btn" style={{ fontSize: '13px' }}>
-                <option>All Categories</option>
-                <option>Algorithms</option>
-                <option>Data Structures</option>
-                <option>Web Tech</option>
-             </select>
-             <select className="page-btn" style={{ fontSize: '13px' }}>
-                <option>All Difficulty</option>
-                <option>Easy</option>
-                <option>Medium</option>
-                <option>Hard</option>
-             </select>
+             <div className="select-wrapper">
+               <select className="filter-select">
+                  <option>All Categories</option>
+                  <option>Algorithms</option>
+                  <option>Data Structures</option>
+                  <option>Web Tech</option>
+               </select>
+             </div>
+             <div className="select-wrapper">
+               <select className="filter-select">
+                  <option>All Difficulty</option>
+                  <option>Easy</option>
+                  <option>Medium</option>
+                  <option>Hard</option>
+               </select>
+             </div>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <div className="search-bar" style={{ width: '300px', height: '36px' }}>
