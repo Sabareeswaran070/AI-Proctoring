@@ -109,7 +109,7 @@ const AddFacultyModal: React.FC<AddFacultyModalProps> = ({ isOpen, onClose, onSu
                 <label>Full Name <span className="required">*</span></label>
                 <div className="input-wrapper">
                   <User size={16} className="input-icon" />
-                  <input name="name" value={form.name} onChange={handleChange} placeholder="Dr. Jane Smith" className={errors.name ? 'error' : ''} />
+                  <input name="name" value={form.name} onChange={handleChange} placeholder="Name" className={errors.name ? 'error' : ''} />
                 </div>
                 {errors.name && <span className="field-error">{errors.name}</span>}
               </div>
@@ -117,7 +117,7 @@ const AddFacultyModal: React.FC<AddFacultyModalProps> = ({ isOpen, onClose, onSu
                 <label>Faculty ID <span className="required">*</span></label>
                 <div className="input-wrapper">
                   <BookOpen size={16} className="input-icon" />
-                  <input name="facultyId" value={form.facultyId} onChange={handleChange} placeholder="FAC001" className={errors.facultyId ? 'error' : ''} />
+                  <input name="facultyId" value={form.facultyId} onChange={handleChange} placeholder="ID" className={errors.facultyId ? 'error' : ''} />
                 </div>
                 {errors.facultyId && <span className="field-error">{errors.facultyId}</span>}
               </div>
@@ -125,7 +125,7 @@ const AddFacultyModal: React.FC<AddFacultyModalProps> = ({ isOpen, onClose, onSu
                 <label>Email <span className="required">*</span></label>
                 <div className="input-wrapper">
                   <Mail size={16} className="input-icon" />
-                  <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="jane@college.edu" className={errors.email ? 'error' : ''} />
+                  <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="Email" className={errors.email ? 'error' : ''} />
                 </div>
                 {errors.email && <span className="field-error">{errors.email}</span>}
               </div>

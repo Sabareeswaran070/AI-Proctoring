@@ -14,7 +14,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
   const [activeTab, setActiveTab] = useState<TabType>('personal');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [institutions, setInstitutions] = useState<{id: string, name: string}[]>([]);
+  const [institutions, setInstitutions] = useState<{ id: string, name: string }[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -37,12 +37,12 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
     if (isOpen) {
       const fetchInstitutions = async () => {
         try {
-          const response = await api.get('/super-admin/institutions'); 
+          const response = await api.get('/super-admin/institutions');
           setInstitutions(response.data);
         } catch (err) {
           console.error("Failed to fetch institutions", err);
           // Fallback for demo
-          setInstitutions([{id: 'demo-inst', name: 'Standard University'}]);
+          setInstitutions([{ id: 'demo-inst', name: 'Standard University' }]);
         }
       };
       fetchInstitutions();
@@ -74,7 +74,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
     const requiredFields = ['name', 'email', 'password', 'studentId', 'institutionId'];
     const cleanedData = Object.fromEntries(
       Object.entries(formData).map(([key, value]) => [
-        key, 
+        key,
         (value === '' && !requiredFields.includes(key)) ? null : value
       ])
     );
@@ -141,15 +141,15 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
               <div className="form-grid">
                 <div className="form-group full">
                   <label>Full Name *</label>
-                  <input name="name" value={formData.name} onChange={handleChange} required placeholder="John Doe" />
+                  <input name="name" value={formData.name} onChange={handleChange} required placeholder="Name" />
                 </div>
                 <div className="form-group">
                   <label>Email Address *</label>
-                  <input name="email" type="email" value={formData.email} onChange={handleChange} required placeholder="john@example.com" />
+                  <input name="email" type="email" value={formData.email} onChange={handleChange} required placeholder="Email" />
                 </div>
                 <div className="form-group">
                   <label>Mobile Number</label>
-                  <input name="phone" value={formData.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" />
+                  <input name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 " />
                 </div>
                 <div className="form-group">
                   <label>Gender</label>
@@ -180,7 +180,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
                 </div>
                 <div className="form-group">
                   <label>Student ID / Reg No *</label>
-                  <input name="studentId" value={formData.studentId} onChange={handleChange} required placeholder="STU-2024-001" />
+                  <input name="studentId" value={formData.studentId} onChange={handleChange} required placeholder="ID" />
                 </div>
                 <div className="form-group">
                   <label>Department</label>
@@ -237,7 +237,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSu
           </footer>
         </form>
 
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .modal-overlay {
             position: fixed;
             top: 0;
