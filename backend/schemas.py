@@ -84,6 +84,16 @@ class FacultyUpdate(BaseModel):
     specialization: Optional[str] = None
     status: Optional[str] = None
 
+class DepartmentCreate(BaseModel):
+    name: str
+    code: Optional[str] = None
+    hodId: Optional[str] = None
+
+class DepartmentUpdate(BaseModel):
+    name: Optional[str] = None
+    code: Optional[str] = None
+    hodId: Optional[str] = None
+
 class InstitutionCreate(BaseModel):
     name: str
     code: str

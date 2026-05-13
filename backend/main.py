@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from core.db import prisma
 from core.limiter import limiter
+from core.security import get_password_hash
 from routers import auth, super_admin, dashboard, institutions
 
 load_dotenv()
@@ -51,6 +52,21 @@ async def add_security_headers(request: Request, call_next):
 @app.on_event("startup")
 async def startup():
     await prisma.connect()
+    
+    # Seed Super Admin
+    super_admin_email = "admin@gmail.com"
+    existing_admin = await prisma.user.find_unique(where={"email": super_admin_email})
+    
+    if not existing_admin:
+        await prisma.user.create(
+            data={
+                "email": super_admin_email,
+                "password": get_password_hash("123456"),
+                "name": "Super Admin",
+                "role": "SUPER_ADMIN",
+                "status": "ACTIVE"
+            }
+        )
 
 @app.on_event("shutdown")
 async def shutdown():

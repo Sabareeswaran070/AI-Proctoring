@@ -492,6 +492,20 @@ async def create_faculty(faculty: FacultyCreate, admin=Depends(RoleChecker(["SUP
             data=faculty_data,
             include={"institution": True}
         )
+        
+        if faculty.designation == "Dept. Head" and faculty.department and faculty.institutionId:
+            dept = await prisma.department.find_first(
+                where={
+                    "name": faculty.department,
+                    "institutionId": faculty.institutionId
+                }
+            )
+            if dept:
+                await prisma.department.update(
+                    where={"id": dept.id},
+                    data={"hodId": new_faculty.id}
+                )
+
         return new_faculty
     except HTTPException:
         raise
@@ -540,22 +554,32 @@ async def update_faculty(id: str, faculty: FacultyUpdate, admin=Depends(RoleChec
         print(f"Error updating faculty: {e}")
         raise HTTPException(status_code=500, detail="Failed to update faculty")
 
-@router.delete("/faculty/{id}")
-async def delete_faculty(id: str, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
-    try:
-        await prisma.user.delete(where={"id": id})
-        return {"message": "Faculty deleted successfully"}
-    except Exception as e:
-        print(f"Error deleting faculty: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete faculty")
-
 @router.delete("/faculty/bulk")
 async def bulk_delete_faculty(request: BulkDeleteRequest, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
     try:
+        # Clear HOD references to prevent foreign key constraint errors
+        await prisma.department.update_many(
+            where={"hodId": {"in": request.ids}},
+            data={"hodId": None}
+        )
         await prisma.user.delete_many(where={"id": {"in": request.ids}})
         return {"message": f"Deleted {len(request.ids)} faculty members"}
     except Exception as e:
         print(f"Error bulk deleting faculty: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete faculty")
+
+@router.delete("/faculty/{id}")
+async def delete_faculty(id: str, admin=Depends(RoleChecker(["SUPER_ADMIN"]))):
+    try:
+        # Clear HOD references to prevent foreign key constraint errors
+        await prisma.department.update_many(
+            where={"hodId": id},
+            data={"hodId": None}
+        )
+        await prisma.user.delete(where={"id": id})
+        return {"message": "Faculty deleted successfully"}
+    except Exception as e:
+        print(f"Error deleting faculty: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete faculty")
 
 @router.put("/faculty/{id}/status")

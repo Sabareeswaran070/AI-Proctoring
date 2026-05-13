@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import { Search, Filter, MoreVertical, GraduationCap, Building2, Calendar, ArrowRight, Trash2, Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle, X, Briefcase } from 'lucide-react';
-import AddFacultyModal from './AddFacultyModal';
+import AddFacultyForm from './AddFacultyForm';
 
 interface Faculty {
   id: string;
@@ -24,7 +24,7 @@ const FacultyList: React.FC<FacultyListProps> = ({ onViewProfile }) => {
   const [faculty, setFaculty] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddMode, setIsAddMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -137,6 +137,20 @@ const FacultyList: React.FC<FacultyListProps> = ({ onViewProfile }) => {
     setImportValidationErrors([]); setImportSuccess(false); setShowBulkImport(false);
   };
 
+  if (isAddMode) {
+    return (
+      <div className="module-container">
+        <AddFacultyForm
+          onBack={() => setIsAddMode(false)}
+          onSuccess={() => {
+            setIsAddMode(false);
+            fetchFaculty();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="module-container">
       <header className="module-header">
@@ -160,7 +174,7 @@ const FacultyList: React.FC<FacultyListProps> = ({ onViewProfile }) => {
               </div>
             )}
           </div>
-          <button className="primary-btn" onClick={() => setIsAddModalOpen(true)}>
+          <button className="primary-btn" onClick={() => setIsAddMode(true)}>
             <GraduationCap size={18} /><span>Add New Faculty</span>
           </button>
         </div>
@@ -341,9 +355,10 @@ const FacultyList: React.FC<FacultyListProps> = ({ onViewProfile }) => {
         )}
       </div>
 
-      <AddFacultyModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSuccess={fetchFaculty} />
 
-      <style dangerouslySetInnerHTML={{ __html: `
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .module-container { padding: 24px; animation: fadeIn 0.4s ease-out; }
         .module-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
         .module-title { font-size: 28px; font-weight: 700; color: #1a1f36; margin: 0 0 4px 0; }
